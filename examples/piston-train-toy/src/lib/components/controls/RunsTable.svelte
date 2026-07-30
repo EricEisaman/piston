@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { clearLocalTrainingData } from '$lib/workspace/clearLocalTrainingData';
 	import { clearPastRuns, runsMap } from '$lib/workspace/runs.svelte';
 	import { getIconStrokeWidth } from '$lib/workspace/ui.svelte';
 	import { Trash } from '@lucide/svelte/icons';
@@ -8,19 +9,50 @@
 	const frozenColumn = { key: 'runId', label: 'Name' };
 
 	const iconStrokeWidth = $derived(getIconStrokeWidth());
+
+	let clearingLocal = $state(false);
+
+	async function onClearLocalData() {
+		if (
+			!confirm(
+				'Clear local training data? This removes past runs, the last session checkpoint, and the dataset shard cache. Your Lil Siggy corpus is kept.'
+			)
+		) {
+			return;
+		}
+		clearingLocal = true;
+		try {
+			clearPastRuns();
+			await clearLocalTrainingData();
+		} finally {
+			clearingLocal = false;
+		}
+	}
 </script>
 
 <div>
-	{#if runs.length > 1}
+	<div class="flex flex-col gap-px">
+		{#if runs.length > 1}
+			<button
+				type="button"
+				class="text-neutral-800 cursor-pointer text-sm p-1 bg-neutral-100 w-full flex items-center gap-1 disabled:opacity-50"
+				disabled={clearingLocal}
+				onclick={clearPastRuns}
+			>
+				<Trash class="inline-block h-3.5 w-3.5 -translate-y-[0.5px]" strokeWidth={iconStrokeWidth} />
+				Clear past runs
+			</button>
+		{/if}
 		<button
 			type="button"
-			class="text-neutral-800 cursor-pointer text-sm p-1 bg-neutral-100 w-full flex items-center gap-1"
-			onclick={clearPastRuns}
+			class="text-neutral-800 cursor-pointer text-sm p-1 bg-neutral-100 w-full flex items-center gap-1 disabled:opacity-50"
+			disabled={clearingLocal}
+			onclick={() => void onClearLocalData()}
 		>
 			<Trash class="inline-block h-3.5 w-3.5 -translate-y-[0.5px]" strokeWidth={iconStrokeWidth} />
-			Clear past runs
+			{clearingLocal ? 'Clearing…' : 'Clear local data'}
 		</button>
-	{/if}
+	</div>
 
 	<div class="overflow-x-clip">
 		<div class="-m-px">

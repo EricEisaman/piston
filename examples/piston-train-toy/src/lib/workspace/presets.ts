@@ -176,14 +176,15 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 					}
 				},
 				training: {
+					// Explicit — do not rely only on FineWeb layer merge for GPT-2 VRAM headroom.
+					batchSize: 4,
+					enableVisualization: false,
+					vramLimitMb: { present: true, value: 32_768 },
 					validation: {
 						batchSize: 4,
 						temperature: 0.8,
 						completions: {
-							present: true,
-							decodingBatchSize: 1,
-							amount: 'subset',
-							subsetSize: 1
+							present: false
 						}
 					}
 				}
@@ -254,6 +255,9 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 					}
 				},
 				training: {
+					batchSize: 4,
+					enableVisualization: false,
+					vramLimitMb: { present: true, value: 8192 },
 					logSteps: 20,
 					validation: {
 						batchSize: 4,

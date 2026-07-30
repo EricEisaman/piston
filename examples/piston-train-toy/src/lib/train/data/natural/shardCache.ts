@@ -87,6 +87,14 @@ export class ShardCache {
 		await this.evictIfNeeded(db, meta);
 	}
 
+	async clear(): Promise<void> {
+		const db = await this.db;
+		await Promise.all([
+			txRequest(db, STORE_BLOBS, 'readwrite', (s) => s.clear()),
+			txRequest(db, STORE_META, 'readwrite', (s) => s.clear())
+		]);
+	}
+
 	private async evictIfNeeded(db: IDBDatabase, meta: LruState): Promise<void> {
 		try {
 			// Keep at most maxBytes
