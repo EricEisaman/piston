@@ -96,8 +96,7 @@
 					citations: {
 						entries: [
 							{
-								name: 'Nair & Hinton, 2010',
-								url: 'https://www.cs.toronto.edu/~fritz/absps/reluICML.pdf'
+								name: 'Nair & Hinton, 2010'
 							}
 						]
 					}
@@ -107,7 +106,7 @@
 					value: 'gelu',
 					title: 'GELU',
 					citations: {
-						entries: [{ name: 'Hendrycks & Gimpel, 2016', url: 'https://arxiv.org/abs/1606.08415' }]
+						entries: [{ name: 'Hendrycks & Gimpel, 2016' }]
 					}
 				},
 				{
@@ -116,10 +115,9 @@
 					citations: {
 						entries: [
 							{
-								name: 'Hendrycks & Gimpel, 2016',
-								url: 'https://arxiv.org/abs/1606.08415'
+								name: 'Hendrycks & Gimpel, 2016'
 							},
-							{ name: 'Elfwing et al., 2017', url: 'https://arxiv.org/abs/1702.03118' }
+							{ name: 'Elfwing et al., 2017' }
 						]
 					}
 				},
@@ -128,7 +126,7 @@
 					title: 'Sigmoid',
 					citations: {
 						entries: [
-							{ name: 'Rumelhart et al., 1986', url: 'https://www.nature.com/articles/323533a0' }
+							{ name: 'Rumelhart et al., 1986' }
 						]
 					}
 				},
@@ -136,7 +134,7 @@
 					value: 'swiglu',
 					title: 'SwiGLU',
 					citations: {
-						entries: [{ name: 'Shazeer, 2020', url: 'https://arxiv.org/pdf/2002.05202' }]
+						entries: [{ name: 'Shazeer, 2020' }]
 					}
 				},
 				{ value: 'tanh', title: 'Tanh' }

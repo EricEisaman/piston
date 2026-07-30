@@ -7,7 +7,6 @@ export {
   _setFunctionModeConstructor,
   _setMarkStepModeConstructor,
   _setPistonWebModule,
-  _setTensorConstructor,
   abs,
   add,
   addcdiv,

@@ -12,7 +12,7 @@ export const PARITY_CONFIG_METADATA = {
 	description: 'Determine if a bit string has even or odd number of 1s (parity)',
 	citations: {
 		entries: [
-			{ name: 'Minsky & Papert, 1969', url: 'https://psycnet.apa.org/record/1969-35017-000' }
+			{ name: 'Minsky & Papert, 1969' }
 		]
 	},
 	supportsModelTypes: ['encoder', 'encoder-decoder', 'decoder'],

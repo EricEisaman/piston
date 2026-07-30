@@ -8,8 +8,7 @@ export const ELMAN_CONFIG_METADATA = {
 	citations: {
 		entries: [
 			{
-				name: 'Elman, 1990',
-				url: 'https://onlinelibrary.wiley.com/doi/abs/10.1207/s15516709cog1402_1'
+				name: 'Elman, 1990'
 			}
 		]
 	},

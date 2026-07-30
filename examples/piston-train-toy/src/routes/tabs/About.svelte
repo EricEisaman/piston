@@ -8,16 +8,14 @@
 		browserInfo,
 		hasWebGPU,
 		isVisualizerEditorMinimized,
-		startTraining
+		openConfigAndScrollToControl,
+		startTraining,
+		switchToMetrics
 	} from '$lib/workspace/ui.svelte';
-	import { getIconStrokeWidth } from '$lib/workspace/ui.svelte';
-	import { openConfigAndScrollToControl, switchToMetrics } from '$lib/workspace/ui.svelte';
 	import { getVisualizationExampleById } from '$lib/workspace/visualizationExamples';
 	import { trainingState, updateVisualizerScript } from '$lib/workspace/workers.svelte';
-	import { ExternalLink, Gpu } from '@lucide/svelte/icons';
+	import { Gpu } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
-
-	const iconStrokeWidth = $derived(getIconStrokeWidth());
 
 	let expanded = $state(false);
 	let isOverflowing = $state(false);
@@ -57,7 +55,7 @@
 	<div
 		class="max-w-2xl mx-auto px-3 pb-3 @md:px-4 @md:pb-4 bg-white flex-1 flex flex-col justify-between"
 	>
-		<article class="prose text-base pb-13 [&_a]:underline">
+		<article class="prose text-base pb-13">
 			<FootnotesProvider start={1}>
 				{#if !hasWebGPU.current}
 					{@const isBrowserUnknown = browserInfo.current.type === 'unknown'}
@@ -69,7 +67,8 @@
 					>
 						<div class="mb-2">
 							<p>
-								<b>Sequence Toy requires WebGPU support, and your browser doesn't support it yet.</b
+								<b
+									>Browser Train requires WebGPU support, and your browser doesn't support it yet.</b
 								>
 								{#if isBrowserUnknown}
 									You have a few options:
@@ -90,16 +89,7 @@
 							{/if}
 							{#if isBrowserUnknown || browserInfo.current.type === 'firefox'}
 								<li>
-									Use <a
-										href="https://www.mozilla.org/en-US/firefox/new/"
-										target="_blank"
-										rel="noopener noreferrer"
-										><b>Firefox Nightly</b>
-										<ExternalLink
-											class="inline-block h-3.5 w-3.5 -translate-y-0.5"
-											strokeWidth={iconStrokeWidth}
-										/></a
-									>
+									Use <b>Firefox Nightly</b>
 								</li>
 							{/if}
 							{#if isBrowserUnknown || browserInfo.current.type === 'safari'}
@@ -115,15 +105,7 @@
 										{/if}
 										{#if isBrowserUnknown || browserInfo.current.platform === 'macos'}
 											<li>
-												MacOS: <a
-													href="https://developer.apple.com/documentation/safari-developer-tools/feature-flag-settings"
-													target="_blank"
-													rel="noopener noreferrer"
-													>Develop menu <ExternalLink
-														class="inline-block h-3.5 w-3.5 -translate-y-0.5"
-														strokeWidth={iconStrokeWidth}
-													/></a
-												> Feature Flags > Enable "WebGPU"
+												MacOS: Develop menu Feature Flags > Enable "WebGPU"
 											</li>
 										{/if}
 									</ul>
@@ -146,7 +128,7 @@
 					<h1
 						class="text-[0.891rem] text-purple-900 uppercase leading-none font-mono font-[450] tracking-wide"
 					>
-						Sequence Toy
+						Browser Train
 					</h1>
 				</div>
 
@@ -260,37 +242,7 @@
 									})}
 								{/snippet}
 								<p>
-									&hellip;training a
-									<!-- <span
-										class="inline-flex align-baseline border border-purple-300/80 overflow-hidden select-none p-px text-sm"
-									>
-										{#snippet modelTypeButton(
-											type: 'decoder' | 'encoder-decoder',
-											displayName: string
-										)}
-											<button
-												type="button"
-												class={`px-0.75 py-0.25 cursor-pointer leading-none border ${aboutToyTopology === type ? 'bg-purple-200 border-purple-400' : 'bg-transparent text-purple-800 border-transparent'}`}
-												onclick={() => {
-													aboutToyTopology = type;
-													config.model.topology = type;
-													validateConfig();
-												}}
-												aria-pressed={aboutToyTopology === type}
-												aria-label={`Use ${displayName}`}
-											>
-												{displayName}
-											</button>
-										{/snippet}
-										{@render modelTypeButton('encoder-decoder', 'Transformer')}
-										{@render modelTypeButton('decoder', 'GPT')}
-									</span> -->Transformer<FN
-										><a
-											href="https://arxiv.org/abs/1706.03762"
-											target="_blank"
-											rel="noopener noreferrer">Attention is All You Need</a
-										></FN
-									>
+									&hellip;training a Transformer<FN>Attention is All You Need</FN>
 									to&#32;{@render sToyPreset(
 										'sort characters',
 										'sort-characters',
@@ -305,13 +257,7 @@
 									)}, then {@render sModelRnnLstm(
 										'compare with an LSTM',
 										'rnn-cell-type-control'
-									)}<FN
-										><a
-											href="https://deeplearning.cs.cmu.edu/S23/document/readings/LSTM.pdf"
-											target="_blank"
-											rel="noopener noreferrer">Long Short-Term Memory</a
-										></FN
-									>.
+									)}<FN>Long Short-Term Memory</FN>.
 									<b>Visualize</b>
 									{@render sViz('the gradients in the attention layer', 'attention-gradients')}, {@render sViz(
 										'all parameters in the network',
@@ -323,21 +269,10 @@
 										'match parentheses in a Dyck language',
 										'dyck-encoder',
 										'dataset-control'
-									)}<FN
-										><a
-											href="https://en.wikipedia.org/wiki/Dyck_language"
-											target="_blank"
-											rel="noopener noreferrer">Wikipedia article on Dyck languages</a
-										></FN
-									>
+									)}<FN>Wikipedia article on Dyck languages</FN>
 									using an encoder-only masked language modeling (MLM) objective<FN
-										><a
-											href="https://arxiv.org/abs/1810.04805"
-											target="_blank"
-											rel="noopener noreferrer"
-											>BERT: Pre-training of Deep Bidirectional Transformers for Language
-											Understanding</a
-										></FN
+										>BERT: Pre-training of Deep Bidirectional Transformers for Language
+										Understanding</FN
 									>
 									<!--(cite masked modeling)-->.
 									<b>Want a taste of natural language?</b>
@@ -346,20 +281,10 @@
 										'tinystories',
 										'dataset-control'
 									)}<FN
-										><a
-											href="https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf"
-											target="_blank"
-											rel="noopener noreferrer"
-											>GPT: Improving Language Understanding by Generative Pre-Training</a
-										></FN
+										>GPT: Improving Language Understanding by Generative Pre-Training</FN
 									><FN
-										><a
-											href="https://arxiv.org/abs/2305.07759"
-											target="_blank"
-											rel="noopener noreferrer"
-											>TinyStories: How Small Can Language Models Be and Still Speak Coherent
-											English?</a
-										></FN
+										>TinyStories: How Small Can Language Models Be and Still Speak Coherent
+										English?</FN
 									>, a dataset of short stories generated by GPT-4—and try different tokenizer
 									sizes.
 									<b>Play with</b>
@@ -398,18 +323,8 @@
 										'fineweb',
 										'dataset-control'
 									)}<FN
-										><a
-											href="https://arxiv.org/abs/2406.17557"
-											target="_blank"
-											rel="noopener noreferrer"
-											>The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale</a
-										></FN
-									> (and
-									<a
-										href="https://x.com/messages/compose?recipient_id=1286805122115280896"
-										target="_blank"
-										rel="noopener noreferrer">DM me</a
-									> if you get it to work!).
+										>The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale</FN
+									> (and DM me if you get it to work!).
 								</p>
 							</div>
 							{#if isOverflowing && !expanded}
@@ -434,30 +349,14 @@
 				</div>
 
 				<p class="mb-4">
-					<a href="https://vin.how" target="_blank" rel="noopener noreferrer">Vin Howe</a>
-					built
-					<a href="https://github.com/vinhowe/piston" target="_blank" rel="noopener noreferrer"
-						>Piston</a
-					>, a WebGPU automatic differentiation engine with a JavaScript API modeled after PyTorch,
-					for this project. It started life as a fork of
-					<a href="https://github.com/huggingface/ratchet" target="_blank" rel="noopener noreferrer"
-						>Ratchet</a
-					><FN id="ratchet"
+					Vin Howe built Piston, a WebGPU automatic differentiation engine with a JavaScript API
+					modeled after PyTorch, for this project. It started life as a fork of Ratchet<FN
+						id="ratchet"
 						>A ratchet is a device that allows motion in only one direction&mdash;Ratchet is
 						intentionally forward-only. A piston reciprocates back and forth quickly&mdash;Piston
 						adds support for reverse-mode automatic differentiation.</FN
 					>
-					by
-					<a href="https://x.com/fleetwood___" target="_blank" rel="noopener noreferrer"
-						>Christopher Fleetwood</a
-					>.
-					<a
-						href="https://vin.how/blog/train-a-language-model-in-your-browser"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="font-medium text-base text-purple-600 underline-offset-1 mb-4"
-						>Read about it in the blog post!</a
-					>
+					by Christopher Fleetwood. Read about it in the blog post!
 				</p>
 
 				<div class="space-y-4">
@@ -467,96 +366,16 @@
 						</h3>
 						<div class="mb-4">
 							<ul class="list-disc list-inside space-y-1">
+								<li>WebGPT by Will Depue.</li>
 								<li>
-									<a href="https://github.com/0hq/WebGPT" target="_blank" rel="noopener noreferrer"
-										>WebGPT</a
-									>
-									by
-									<a href="https://x.com/willdepue" target="_blank" rel="noopener noreferrer"
-										>Will Depue</a
-									>.
+									TensorFlow Neural Network Playground by Daniel Smilkov and Shan Carter.
 								</li>
+								<li>Modded-NanoGPT by Keller Jordan.</li>
+								<li>Transformers.js by Joshua Lochner.</li>
+								<li>Transformer Explainer by the Polo Data Club at Georgia Tech.</li>
+								<li>LLM Visualization by Brendan Bycroft.</li>
 								<li>
-									<a
-										href="https://playground.tensorflow.org"
-										target="_blank"
-										rel="noopener noreferrer">TensorFlow Neural Network Playground</a
-									>
-									by
-									<a href="https://x.com/dsmilkov" target="_blank" rel="noopener noreferrer"
-										>Daniel Smilkov</a
-									>
-									and
-									<a href="https://x.com/shancarter" target="_blank" rel="noopener noreferrer"
-										>Shan Carter</a
-									>.
-								</li>
-								<li>
-									<a
-										href="https://github.com/KellerJordan/modded-nanogpt"
-										target="_blank"
-										rel="noopener noreferrer">Modded-NanoGPT</a
-									>
-									by
-									<a href="https://x.com/kellerjordan0" target="_blank" rel="noopener noreferrer"
-										>Keller Jordan</a
-									>.
-								</li>
-								<li>
-									<a
-										href="https://github.com/huggingface/transformers.js"
-										target="_blank"
-										rel="noopener noreferrer">Transformers.js</a
-									>
-									by
-									<a href="https://x.com/xenovacom" target="_blank" rel="noopener noreferrer"
-										>Joshua Lochner</a
-									>.
-								</li>
-								<li>
-									<a
-										href="https://poloclub.github.io/transformer-explainer/"
-										target="_blank"
-										rel="noopener noreferrer">Transformer Explainer</a
-									>
-									by the
-									<a href="https://x.com/polodataclub" target="_blank" rel="noopener noreferrer"
-										>Polo Data Club at Georgia Tech</a
-									>.
-								</li>
-								<li>
-									<a href="https://bbycroft.net/llm" target="_blank" rel="noopener noreferrer"
-										>LLM Visualization</a
-									>
-									by
-									<a href="https://x.com/brendanbycroft" target="_blank" rel="noopener noreferrer"
-										>Brendan Bycroft</a
-									>.
-								</li>
-								<li>
-									<a
-										href="https://github.com/karpathy/convnetjs"
-										target="_blank"
-										rel="noopener noreferrer">ConvNetJS</a
-									>,
-									<a
-										href="https://github.com/karpathy/micrograd"
-										target="_blank"
-										rel="noopener noreferrer">micrograd</a
-									>,
-									<a
-										href="https://github.com/karpathy/minGPT"
-										target="_blank"
-										rel="noopener noreferrer">minGPT</a
-									>, and
-									<a
-										href="https://github.com/karpathy/llm.c"
-										target="_blank"
-										rel="noopener noreferrer">llm.c</a
-									>, by
-									<a href="https://x.com/karpathy" target="_blank" rel="noopener noreferrer"
-										>Andrej Karpathy</a
-									>.
+									ConvNetJS, micrograd, minGPT, and llm.c, by Andrej Karpathy.
 								</li>
 							</ul>
 						</div>
@@ -567,36 +386,9 @@
 						<div class="mb-4">
 							<ul class="list-disc list-inside space-y-1">
 								<li>
-									<a href="https://x.com/ezyang" target="_blank" rel="noopener noreferrer"
-										>Edward Z. Yang</a
-									>'s blog posts on
-									<a
-										href="https://blog.ezyang.com/2019/05/pytorch-internals/"
-										target="_blank"
-										rel="noopener noreferrer">PyTorch internals</a
-									>
-									and its
-									<a
-										href="https://blog.ezyang.com/2020/09/lets-talk-about-the-pytorch-dispatcher/"
-										target="_blank"
-										rel="noopener noreferrer">dispatcher</a
-									>.
+									Edward Z. Yang's blog posts on PyTorch internals and its dispatcher.
 								</li>
-								<li>
-									<a
-										href="https://arxiv.org/abs/2102.13267"
-										target="_blank"
-										rel="noopener noreferrer"
-									>
-										The LazyTensor paper</a
-									>
-									and
-									<a
-										href="https://github.com/pytorch/pytorch/tree/main/torch/csrc/lazy"
-										target="_blank"
-										rel="noopener noreferrer">torch/csrc/lazy/</a
-									>.
-								</li>
+								<li>The LazyTensor paper and torch/csrc/lazy/.</li>
 								<li>
 									Building PyTorch from source and spelunking in its source code&mdash;especially
 									the generated parts.
@@ -609,18 +401,8 @@
 						<div class="space-y-4">
 							<div>
 								<h4 class="font-medium mb-2">
-									Thanks to <a
-										href="https://x.com/grantpitt0"
-										target="_blank"
-										rel="noopener noreferrer">Grant Pitt</a
-									>,
-									<a href="https://x.com/fleetwood___" target="_blank" rel="noopener noreferrer"
-										>Christopher Fleetwood</a
-									>, and
-									<a href="https://x.com/bgub_" target="_blank" rel="noopener noreferrer"
-										>Ben Gubler</a
-									>
-									for support, discussion, and feedback. 💜
+									Thanks to Grant Pitt, Christopher Fleetwood, and Ben Gubler for support,
+									discussion, and feedback. 💜
 								</h4>
 							</div>
 						</div>
@@ -629,20 +411,9 @@
 			</FootnotesProvider>
 		</article>
 		<footer class="relative flex justify-between items-center text-neutral-600 py-1">
-			<span>
-				By <a href="https://vin.how" class="underline" target="_blank" rel="noopener noreferrer"
-					>Vin Howe</a
-				>
-			</span>
+			<span>By Eric Eisaman</span>
 			<CuteLogo class="w-[22px] h-[22px]" strokeWidth={1.5} />
-			<span>
-				Revision <a
-					href={`https://github.com/vinhowe/piston/commit/${__COMMIT_HASH__}`}
-					class="underline"
-					target="_blank"
-					rel="noopener noreferrer">{__COMMIT_HASH__}</a
-				>
-			</span>
+			<span>Revision {__COMMIT_HASH__}</span>
 		</footer>
 	</div>
 </div>

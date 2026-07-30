@@ -1,0 +1,19 @@
+[build]
+  command = "bash scripts/build-piston-train-toy.sh"
+  publish = "examples/piston-train-toy/build"
+
+[build.environment]
+  NODE_VERSION = "22.17.1"
+  # Optional: narrow datasets if build limits are hit, e.g. DATASETS=tinyshakespeare,tinystories
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+
+[[headers]]
+  for = "/*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"

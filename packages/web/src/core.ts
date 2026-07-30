@@ -3,12 +3,10 @@ import * as pistonWasmExports from "@piston-ml/piston-web-wasm";
 
 import { PistonFunctionMode, PistonMarkStepMode } from "@/function";
 import { initGlobals } from "@/globals";
-import { Tensor } from "@/tensor";
 import {
   _setFunctionModeConstructor,
   _setMarkStepModeConstructor,
   _setPistonWebModule,
-  _setTensorConstructor,
   wasmInit,
 } from "@/wasm";
 
@@ -39,7 +37,6 @@ async function init(): Promise<void> {
   _setPistonWebModule(pistonWasmExports as unknown as object);
   _setFunctionModeConstructor(PistonFunctionMode);
   _setMarkStepModeConstructor(PistonMarkStepMode);
-  _setTensorConstructor(Tensor);
 
   await initGlobals();
 }

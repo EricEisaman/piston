@@ -1,30 +1,46 @@
 import { sveltekit } from '@sveltejs/kit/vite';
+import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import tailwindcss from '@tailwindcss/vite';
-import { execSync } from 'node:child_process';
 import path from 'path';
 import sirv from 'sirv';
 import { fileURLToPath } from 'url';
 import { defineConfig, loadEnv, type ViteDevServer } from 'vite';
 import wasm from 'vite-plugin-wasm';
 
-// Get the project root directory
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+const resolveCommitHash = (): string => {
+	const candidates = [
+		process.env.VITE_COMMIT_HASH,
+		process.env.COMMIT_REF,
+		process.env.RENDER_GIT_COMMIT,
+		process.env.CF_PAGES_COMMIT_SHA
+	];
+	for (const value of candidates) {
+		if (value && value.trim().length > 0) {
+			return value.trim().slice(0, 7);
+		}
+	}
+	return 'unknown';
+};
+
+const commitHash = resolveCommitHash();
 
 // Dev-only mount for tokenizer and tokenized directories via env paths
 const devStaticMount = (opts: { tokenizerDir?: string; tokenizedDir?: string }) => ({
 	name: 'dev-static-mount',
-	apply: 'serve',
+	apply: 'serve' as const,
 	configureServer(server: ViteDevServer) {
 		const tokenizerDir = opts.tokenizerDir;
 		const tokenizedDir = opts.tokenizedDir;
-		if (tokenizerDir)
+		if (tokenizerDir) {
 			server.middlewares.use('/tokenizer', sirv(tokenizerDir, { dev: true, etag: true }));
-		if (tokenizedDir)
+		}
+		if (tokenizedDir) {
 			server.middlewares.use('/tokenized', sirv(tokenizedDir, { dev: true, etag: true }));
+		}
 	}
 });
-
-const commitHash = execSync('git rev-parse --short HEAD').toString().trim();
 
 export default defineConfig(({ mode }) => {
 	const envDir = path.dirname(fileURLToPath(import.meta.url));
@@ -45,7 +61,61 @@ export default defineConfig(({ mode }) => {
 					]
 				: []),
 			sveltekit(),
-			wasm()
+			wasm(),
+			SvelteKitPWA({
+				registerType: 'autoUpdate',
+				injectRegister: 'auto',
+				manifest: {
+					name: 'Browser Train',
+					short_name: 'Browser Train',
+					description: 'Train language models in your browser with WebGPU',
+					theme_color: '#6b21a8',
+					background_color: '#f5f5f5',
+					display: 'standalone',
+					start_url: '/',
+					scope: '/',
+					icons: [
+						{
+							src: '/pwa-192.png',
+							sizes: '192x192',
+							type: 'image/png'
+						},
+						{
+							src: '/pwa-512.png',
+							sizes: '512x512',
+							type: 'image/png'
+						},
+						{
+							src: '/pwa-512.png',
+							sizes: '512x512',
+							type: 'image/png',
+							purpose: 'maskable'
+						}
+					]
+				},
+				// Let @vite-pwa/sveltekit pick client/ + prerendered/ globs.
+				workbox: {
+					navigateFallback: undefined,
+					runtimeCaching: [
+						{
+							urlPattern: ({ url }) =>
+								url.pathname.startsWith('/tokenizer/') ||
+								url.pathname.startsWith('/tokenized/'),
+							handler: 'CacheFirst',
+							options: {
+								cacheName: 'browser-train-data',
+								expiration: {
+									maxEntries: 64,
+									maxAgeSeconds: 60 * 60 * 24 * 30
+								}
+							}
+						}
+					]
+				},
+				devOptions: {
+					enabled: false
+				}
+			})
 		],
 		worker: {
 			format: 'es',
@@ -70,13 +140,9 @@ export default defineConfig(({ mode }) => {
 		},
 		server: {
 			fs: {
-				// Allow serving files from the project root and one level up
 				allow: [
-					// Allow serving from the Svelte project directory
 					path.resolve(path.dirname(fileURLToPath(import.meta.url))),
-					// Allow serving from the entire ratchet project directory
 					projectRoot,
-					// Allow serving from the WASM file's directory
 					path.resolve(projectRoot, 'target', 'pkg', 'piston-web')
 				]
 			},

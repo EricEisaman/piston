@@ -1,13 +1,16 @@
 <script lang="ts">
+	import { pwaInfo } from 'virtual:pwa-info';
 	import '../app.css';
 
 	let { children } = $props();
+
+	const webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '');
 </script>
 
 <svelte:head>
-	<title>sequence toy</title>
+	<title>Browser Train</title>
 	<meta name="description" content="Train language models in your browser with WebGPU" />
-	<meta name="author" content="Vin Howe" />
+	<meta name="author" content="Eric Eisaman" />
 	<meta name="keywords" content="machine learning, transformer, WebGPU, training, neural network" />
 	<meta name="theme-color" content="oklch(0.438 0.218 303.724)" />
 	<meta name="color-scheme" content="light" />
@@ -17,18 +20,10 @@
 	<link rel="icon" href="/favicon.ico" sizes="32x32" />
 	<link rel="icon" href="/icon.svg" type="image/svg+xml" />
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-	<meta name="application-name" content="Sequence Toy" />
+	<meta name="application-name" content="Browser Train" />
 	<meta name="subject" content="Machine Learning Training Interface" />
 	<meta name="rating" content="general" />
-	<link rel="canonical" href="https://sequence.toys" />
-	<link rel="preconnect" href="https://use.typekit.net" crossorigin="anonymous" />
-	<link
-		rel="preload"
-		href="https://use.typekit.net/ixr7lrv.css"
-		as="style"
-		crossorigin="anonymous"
-	/>
-	<link rel="stylesheet" href="https://use.typekit.net/ixr7lrv.css" crossorigin="anonymous" />
+	<link rel="canonical" href="https://browser-train.netlify.app" />
 	<link
 		rel="preload"
 		href="/Berkeley Mono Variable.woff2"
@@ -36,58 +31,37 @@
 		type="font/woff2"
 		crossorigin="anonymous"
 	/>
+	{#if webManifestLink}
+		{@html webManifestLink}
+	{/if}
 
 	<!-- Open Graph -->
-	<meta property="og:title" content="Sequence Toy" />
+	<meta property="og:title" content="Browser Train" />
 	<meta property="og:description" content="Train language models in your browser with WebGPU" />
 	<meta property="og:type" content="website" />
-	<meta property="og:url" content="https://sequence.toys" />
-	<meta property="og:image" content="https://sequence.toys/social.png" />
-	<meta property="og:image:alt" content="Preview of Sequence Toy interface" />
+	<meta property="og:url" content="https://browser-train.netlify.app" />
+	<meta property="og:image" content="https://browser-train.netlify.app/og-image.png" />
+	<meta property="og:image:alt" content="Browser Train decoder self-attention visualization" />
 
 	<!-- Twitter -->
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="Sequence Toy" />
+	<meta name="twitter:title" content="Browser Train" />
 	<meta name="twitter:description" content="Train language models in your browser with WebGPU" />
-	<meta name="twitter:image" content="https://sequence.toys/social.png" />
-	<meta name="twitter:creator" content="@vinhowe" />
-	<meta name="twitter:site" content="@vinhowe" />
+	<meta name="twitter:image" content="https://browser-train.netlify.app/og-image.png" />
+	<meta name="twitter:creator" content="@SirFizX207" />
+	<meta name="twitter:site" content="@SirFizX207" />
 
 	<!-- Structured data -->
 	<script type="application/ld+json">
 		{
 			"@context": "https://schema.org",
 			"@type": "WebApplication",
-			"name": "Sequence Toy",
-			"url": "https://sequence.toys",
+			"name": "Browser Train",
+			"url": "https://browser-train.netlify.app",
 			"description": "Train language models in your browser with WebGPU",
 			"inLanguage": "en",
 			"applicationCategory": "EducationalApplication",
-			"operatingSystem": "Any",
-			"creator": {
-				"@type": "Person",
-				"name": "Thomas Vincent Howe",
-				"alternateName": "Vin Howe",
-				"url": "https://vin.how",
-				"jobTitle": "Graduate Student",
-				"worksFor": {
-					"@type": "Organization",
-					"name": "Brigham Young University",
-					"url": "https://www.byu.edu"
-				},
-				"alumniOf": {
-					"@type": "CollegeOrUniversity",
-					"name": "Brigham Young University",
-					"url": "https://www.byu.edu"
-				},
-				"sameAs": [
-					"https://vin.how",
-					"https://www.linkedin.com/in/tvinhowe",
-					"https://x.com/vinhowe",
-					"https://github.com/vinhowe",
-					"https://scholar.google.com/citations?user=nOym4IEAAAAJ"
-				]
-			}
+			"operatingSystem": "Any"
 		}
 	</script>
 </svelte:head>

@@ -24,7 +24,7 @@ inherits = "release"
 debug = 2
 
 [workspace.dependencies]
-wgpu = { git = "https://github.com/vinhowe/wgpu", rev = "8aa00b0ef4b2903b542741213f3ad186c4c32186", features = [
+wgpu = { git = "https://github.com/EricEisaman/wgpu", rev = "8aa00b0ef4b2903b542741213f3ad186c4c32186", features = [
     "fragile-send-sync-non-atomic-wasm",
 ] }
 bytemuck = { version = "1.14.0", features = [
@@ -53,7 +53,7 @@ clap = "4.5.3"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 dot3 = "0.1.0"
-encase = { git = "https://github.com/vinhowe/encase", branch = "add-member" }
+encase = { git = "https://github.com/EricEisaman/encase", rev = "003f96205dcce5d8d61cf995ff3e447e03241f27" }
 env_logger = "0.11.3"
 fern = "0.6.2"
 getrandom = "0.2"
@@ -108,4 +108,4 @@ paste = { version = "1.0.15" }
 tsify = { version = "0.5.5", features = ["js"] }
 
 [patch.crates-io]
-wasm-bindgen = { git = "https://github.com/vinhowe/wasm-bindgen", rev = "4b4f9cd9731cf35725727bcac92940d51a559a50" }
+wasm-bindgen = { git = "https://github.com/EricEisaman/wasm-bindgen", rev = "4b4f9cd9731cf35725727bcac92940d51a559a50" }

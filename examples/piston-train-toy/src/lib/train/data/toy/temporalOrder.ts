@@ -15,8 +15,7 @@ export const TEMPORAL_ORDER_CONFIG_METADATA = {
 	citations: {
 		entries: [
 			{
-				name: 'Hochreiter & Schmidhuber, 1997',
-				url: 'https://ieeexplore.ieee.org/abstract/document/6795963'
+				name: 'Hochreiter & Schmidhuber, 1997'
 			}
 		]
 	},

@@ -1,1 +1,18 @@
-This is the source code for the web demo at [sequence.toys](https://sequence.toys). It is a static Svelte app.
+# Browser Train
+
+Static Svelte app for training sequence models in the browser with WebGPU.
+
+Deployed at [browser-train.netlify.app](https://browser-train.netlify.app).
+
+## Natural-language data
+
+Prepare local shards (no third-party demo CDN):
+
+```bash
+# from repo root
+DATASETS=tinyshakespeare,tinystories,fineweb VOCABS=char,1024 bash scripts/prepare-natural-data.sh
+```
+
+See [scripts/DATA.md](../../scripts/DATA.md).
+
+Thanks to Vin Howe for getting this project off the ground.

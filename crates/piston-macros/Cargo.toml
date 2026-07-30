@@ -4,7 +4,7 @@ version = "0.1.0"
 keywords = []
 edition = "2024"
 readme.workspace = true
-repository = "https://github.com/vinhowe/piston"
+repository = "https://github.com/EricEisaman/piston"
 
 [lib]
 proc-macro = true

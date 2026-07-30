@@ -1,5 +1,5 @@
 {
-  "name": "@vinhowe/piston",
+  "name": "@piston-ml/piston",
   "version": "0.0.0",
   "exports": "./src/index.ts",
   "publish": {

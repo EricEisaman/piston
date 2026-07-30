@@ -188,8 +188,7 @@
 					citations: {
 						entries: [
 							{
-								name: 'Ba et al., 2016',
-								url: 'https://www.cs.utoronto.ca/~hinton/absps/LayerNormalization.pdf'
+								name: 'Ba et al., 2016'
 							}
 						],
 						extra: '; Transformer, GPT-series'
@@ -201,8 +200,7 @@
 					citations: {
 						entries: [
 							{
-								name: 'Zhang & Sennrich, 2019',
-								url: 'https://proceedings.neurips.cc/paper_files/paper/2019/file/1e8a19426224ca89e83cef47f1e7f53b-Paper.pdf'
+								name: 'Zhang & Sennrich, 2019'
 							}
 						],
 						extra: '; Llama'
@@ -347,7 +345,7 @@
 					value: 'transformer',
 					title: 'Transformer',
 					citations: {
-						entries: [{ name: 'Vaswani et al., 2017', url: 'https://arxiv.org/abs/1706.03762' }]
+						entries: [{ name: 'Vaswani et al., 2017' }]
 					}
 				},
 				{
@@ -356,8 +354,7 @@
 					citations: {
 						entries: [
 							{
-								name: 'Elman, 1990',
-								url: 'https://onlinelibrary.wiley.com/doi/abs/10.1207/s15516709cog1402_1'
+								name: 'Elman, 1990'
 							}
 						]
 					}
@@ -420,8 +417,7 @@
 						citations: {
 							entries: [
 								{
-									name: 'Hochreiter & Schmidhuber, 1997',
-									url: 'https://ieeexplore.ieee.org/abstract/document/6795963'
+									name: 'Hochreiter & Schmidhuber, 1997'
 								}
 							]
 						}
@@ -430,7 +426,7 @@
 						value: 'gru',
 						title: 'GRU',
 						citations: {
-							entries: [{ name: 'Cho et al., 2014', url: 'https://aclanthology.org/W14-4012/' }]
+							entries: [{ name: 'Cho et al., 2014' }]
 						}
 					},
 					{
@@ -439,8 +435,7 @@
 						citations: {
 							entries: [
 								{
-									name: 'Elman, 1990',
-									url: 'https://onlinelibrary.wiley.com/doi/abs/10.1207/s15516709cog1402_1'
+									name: 'Elman, 1990'
 								}
 							]
 						}
@@ -509,7 +504,7 @@
 				id="model-tie-embeddings-and-lm-head"
 				label="Tie Embeddings and LM Head"
 				citations={{
-					entries: [{ name: 'Press & Wolf, 2016', url: 'https://arxiv.org/abs/1608.05859' }]
+					entries: [{ name: 'Press & Wolf, 2016' }]
 				}}
 				bind:checked={config.model.tieEmbeddingsAndLmHead}
 				hasDefaultValue={equalsConfigDefault('model.tieEmbeddingsAndLmHead')}
@@ -542,8 +537,7 @@
 							citations: {
 								entries: [
 									{
-										name: 'Mikolov et al., 2013',
-										url: 'https://papers.nips.cc/paper_files/paper/2013/hash/9aa42b31882ec039965f3c4923ce901b-Abstract.html'
+										name: 'Mikolov et al., 2013'
 									}
 								],
 								extra: '—Word2Vec'
@@ -615,10 +609,9 @@
 			title="Round Token Vocabulary Size to Nearest Multiple"
 			citations={{
 				entries: [
-					{ name: 'Karpathy, 2023', url: 'https://x.com/karpathy/status/1621578354024677377' },
+					{ name: 'Karpathy, 2023' },
 					{
-						name: 'NVIDIA Docs',
-						url: 'http://web.archive.org/web/20250912215737/https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html#requirements-tc__table_usc_swx_lmb'
+						name: 'NVIDIA Docs'
 					}
 				]
 			}}
@@ -645,7 +638,7 @@
 				title="Multi-Head Attention (MHA)"
 				showEnableToggle={true}
 				citations={{
-					entries: [{ name: 'Vaswani et al., 2017', url: 'https://arxiv.org/abs/1706.03762' }]
+					entries: [{ name: 'Vaswani et al., 2017' }]
 				}}
 				contentClass={sectionClass}
 				bind:enabled={config.model.transformer.attention.present}
@@ -668,7 +661,7 @@
 					label="Attention Sinks"
 					citations={{
 						entries: [
-							{ name: 'Gu et al., 2025', url: 'https://openreview.net/forum?id=78Nn4QJTEN' }
+							{ name: 'Gu et al., 2025' }
 						]
 					}}
 					bind:checked={config.model.transformer.attention.sinks.present}
@@ -680,7 +673,7 @@
 					title="Grouped-Query Attention (GQA)"
 					citations={{
 						entries: [
-							{ name: 'Ainslie et al., 2023', url: 'https://aclanthology.org/2023.emnlp-main.298/' }
+							{ name: 'Ainslie et al., 2023' }
 						]
 					}}
 					showEnableToggle={true}
@@ -716,7 +709,7 @@
 					id="model-attention-gating-group"
 					title="Gating"
 					citations={{
-						entries: [{ name: 'Qiu et al., 2025', url: 'https://arxiv.org/abs/2505.06708' }]
+						entries: [{ name: 'Qiu et al., 2025' }]
 					}}
 					showEnableToggle={true}
 					bind:enabled={config.model.transformer.attention.gating.present}
@@ -811,8 +804,7 @@
 							citations: {
 								entries: [
 									{
-										name: 'Liu et al., 2021',
-										url: 'https://proceedings.neurips.cc/paper/2021/hash/4cc05b35c2f937c5bd9e7d41d3686fff-Abstract.html'
+										name: 'Liu et al., 2021'
 									}
 								]
 							}
@@ -862,7 +854,7 @@
 							title: 'Sinusoidal',
 							citations: {
 								entries: [
-									{ name: 'Vaswani et al., 2017', url: 'https://arxiv.org/abs/1706.03762' }
+									{ name: 'Vaswani et al., 2017' }
 								],
 								extra: '; Transformer'
 							}
@@ -873,8 +865,7 @@
 							citations: {
 								entries: [
 									{
-										name: 'Radford et al., 2018',
-										url: 'https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf'
+										name: 'Radford et al., 2018'
 									}
 								],
 								extra: '; GPT-series'
@@ -886,8 +877,7 @@
 							citations: {
 								entries: [
 									{
-										name: 'Su et al., 2021',
-										url: 'https://www.sciencedirect.com/science/article/pii/S0925231223011864'
+										name: 'Su et al., 2021'
 									}
 								],
 								extra: '; Llama'
@@ -898,7 +888,7 @@
 							title: 'Alibi',
 							citations: {
 								entries: [
-									{ name: 'Press et al., 2021', url: 'https://openreview.net/forum?id=R8sQPpGCv0' }
+									{ name: 'Press et al., 2021' }
 								],
 								extra: '; BLOOM, MPT'
 							}
@@ -958,7 +948,7 @@
 								title: 'Additive',
 								citations: {
 									entries: [
-										{ name: 'Bahdanau et al., 2015', url: 'https://arxiv.org/abs/1409.0473' }
+										{ name: 'Bahdanau et al., 2015' }
 									]
 								}
 							},
@@ -967,7 +957,7 @@
 								title: 'Multiplicative',
 								citations: {
 									entries: [
-										{ name: 'Luong et al., 2015', url: 'https://aclanthology.org/D15-1166/' }
+										{ name: 'Luong et al., 2015' }
 									]
 								}
 							}
@@ -1024,8 +1014,7 @@
 					citations={{
 						entries: [
 							{
-								name: 'Henry et al., 2020',
-								url: 'https://aclanthology.org/2020.findings-emnlp.379/'
+								name: 'Henry et al., 2020'
 							}
 						]
 					}}
@@ -1064,8 +1053,7 @@
 					citations={{
 						entries: [
 							{
-								name: 'Gemma Team, 2024',
-								url: 'https://storage.googleapis.com/deepmind-media/gemma/gemma-2-report.pdf'
+								name: 'Gemma Team, 2024'
 							}
 						]
 					}}
@@ -1128,8 +1116,7 @@
 				citations={{
 					entries: [
 						{
-							name: 'Ba et al., 2016',
-							url: 'https://www.cs.utoronto.ca/~hinton/absps/LayerNormalization.pdf'
+							name: 'Ba et al., 2016'
 						}
 					]
 				}}
@@ -1452,7 +1439,7 @@
 				title="Label Smoothing"
 				citations={{
 					entries: [
-						{ name: 'Szegedy et al., 2016', url: 'https://ieeexplore.ieee.org/document/7780677' }
+						{ name: 'Szegedy et al., 2016' }
 					]
 				}}
 				contentClass={sectionClass}
@@ -1480,8 +1467,7 @@
 					citations={{
 						entries: [
 							{
-								name: 'Srivastava et al., 2014',
-								url: 'https://jmlr.org/papers/v15/srivastava14a.html'
+								name: 'Srivastava et al., 2014'
 							}
 						]
 					}}
@@ -1577,8 +1563,7 @@
 					citations: {
 						entries: [
 							{
-								name: 'Loshchilov & Hutter, 2017',
-								url: 'https://openreview.net/forum?id=Bkg6RiCqY7'
+								name: 'Loshchilov & Hutter, 2017'
 							}
 						]
 					}
@@ -1587,7 +1572,7 @@
 					value: 'Adam',
 					title: 'Adam',
 					citations: {
-						entries: [{ name: 'Kingma & Ba, 2014', url: 'https://arxiv.org/abs/1412.6980' }]
+						entries: [{ name: 'Kingma & Ba, 2014' }]
 					}
 				},
 				{
@@ -1595,7 +1580,7 @@
 					title: 'SGD',
 					citations: {
 						entries: [
-							{ name: 'Robbins & Monro, 1951', url: 'https://www.jstor.org/stable/2236626?seq=1' }
+							{ name: 'Robbins & Monro, 1951' }
 						]
 					}
 				},
@@ -1604,7 +1589,7 @@
 					title: 'Muon with AdamW',
 					citations: {
 						entries: [
-							{ name: 'Jordan et al., 2024', url: 'https://kellerjordan.github.io/posts/muon/' }
+							{ name: 'Jordan et al., 2024' }
 						]
 					}
 				}

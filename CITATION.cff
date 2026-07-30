@@ -1,11 +1,9 @@
 cff-version: 1.2.0
-message: "If you use Piston or Sequence Toy in your research, please cite them as below."
+message: "If you use Piston or Browser Train in your research, please cite them as below."
 authors:
-- family-names: "Howe"
-  given-names: "Thomas Vincent"
-  orcid: "https://orcid.org/0009-0007-9729-0014"
-title: "Piston and Sequence Toy"
+- family-names: "Eisaman"
+  given-names: "Eric"
+title: "Piston and Browser Train"
 version: 0.0.2
-doi: 10.5281/zenodo.17576959
 date-released: 2025-11-10
-url: "https://github.com/vinhowe/piston"
+url: "https://github.com/EricEisaman/piston"

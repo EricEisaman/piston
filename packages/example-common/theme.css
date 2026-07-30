@@ -10,7 +10,7 @@
 
 @theme {
 	--font-mono: 'Berkeley Mono Variable', monospace;
-	--font-sans: 'neue-haas-unica', sans-serif;
+	--font-sans: 'Berkeley Mono Variable', ui-sans-serif, system-ui, sans-serif;
 
 	--spacing: 0.2rem;
 

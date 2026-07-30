@@ -56,7 +56,7 @@ const CONFIG_DEFAULTS: Config = {
 		},
 		randomSeed: {
 			present: true,
-			value: 'sequence toy'
+			value: 'browser train'
 		},
 		gradNorm: {
 			track: true,

@@ -19,7 +19,8 @@
       "@codemirror/view": "^6.37.2",
       "@lezer/highlight": "^1.2.1",
       "codemirror": "^6.0.1",
-      "svelte": "^5.45.1"
+      "svelte": "^5.45.1",
+      "vite": "8.1.5"
     }
   },
   "scripts": {
@@ -28,6 +29,9 @@
     "lint": "pnpm -r lint",
     "changeset": "changeset",
     "version": "changeset version",
-    "publish": "pnpm build && changeset publish"
+    "publish": "pnpm build && changeset publish",
+    "build:train-toy": "bash scripts/build-piston-train-toy.sh",
+    "fetch:data": "bash scripts/prepare-natural-data.sh",
+    "prepare:data": "bash scripts/prepare-natural-data.sh"
   }
 }

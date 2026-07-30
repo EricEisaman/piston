@@ -13,7 +13,7 @@ keywords = [
     "machine-learning",
     "deep-learning",
 ]
-repository = "https://github.com/vinhowe/piston"
+repository = "https://github.com/EricEisaman/piston"
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 debug-js-glue = true

@@ -24,8 +24,7 @@ export const NATURAL_DATASET_META: Record<NaturalDatasetName, NaturalDatasetMeta
 		citations: {
 			entries: [
 				{
-					name: 'Eldan, 2023',
-					url: 'https://arxiv.org/abs/2305.07759'
+					name: 'Eldan, 2023'
 				}
 			]
 		}
@@ -36,8 +35,7 @@ export const NATURAL_DATASET_META: Record<NaturalDatasetName, NaturalDatasetMeta
 		citations: {
 			entries: [
 				{
-					name: 'Karpathy, 2015',
-					url: 'https://github.com/karpathy/char-rnn'
+					name: 'Karpathy, 2015'
 				}
 			]
 		}
@@ -48,8 +46,7 @@ export const NATURAL_DATASET_META: Record<NaturalDatasetName, NaturalDatasetMeta
 		citations: {
 			entries: [
 				{
-					name: 'Raghavendra, 2024',
-					url: 'https://web.archive.org/https://nikhilr.io/posts/TinyChat15M/'
+					name: 'Raghavendra, 2024'
 				}
 			]
 		}
@@ -60,8 +57,7 @@ export const NATURAL_DATASET_META: Record<NaturalDatasetName, NaturalDatasetMeta
 		citations: {
 			entries: [
 				{
-					name: 'Penedo et al., 2024',
-					url: 'https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1'
+					name: 'Penedo et al., 2024'
 				}
 			]
 		}

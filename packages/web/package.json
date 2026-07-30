@@ -1,7 +1,7 @@
 {
   "name": "@piston-ml/piston-web",
   "version": "0.0.0",
-  "homepage": "https://piston.vin.how",
+  "homepage": "https://browser-train.netlify.app",
   "type": "module",
   "main": "./dist/piston.module.mjs",
   "module": "./dist/piston.module.mjs",
@@ -19,13 +19,13 @@
   "files": [
     "dist"
   ],
-  "author": "Vin Howe <vin@vin.how>",
+  "author": "Eric Eisaman",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vinhowe/piston.git"
+    "url": "git+https://github.com/EricEisaman/piston.git"
   },
   "bugs": {
-    "url": "https://github.com/vinhowe/piston/issues"
+    "url": "https://github.com/EricEisaman/piston/issues"
   },
   "license": "MIT",
   "engines": {

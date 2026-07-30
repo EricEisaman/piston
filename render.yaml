@@ -1,0 +1,12 @@
+# Browser Train — free Render web service serving the static SvelteKit build.
+# Full Rust+WASM+pnpm build is heavy; free tier may need DATASETS narrowed.
+services:
+  - type: web
+    name: browser-train
+    runtime: node
+    plan: free
+    buildCommand: bash scripts/build-piston-train-toy.sh
+    startCommand: pnpm --filter piston-train-toy exec serve build -l $PORT --single
+    envVars:
+      - key: NODE_VERSION
+        value: "22.17.1"
