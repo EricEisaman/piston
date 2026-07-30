@@ -1,0 +1,9 @@
+# Optional local Python ML stack (not used by Browser Train / Netlify).
+# Named requirements-ml.txt so Netlify does not auto-pip-install this file.
+# Browser Train data prep uses scripts/requirements-data.txt instead.
+--extra-index-url https://download.pytorch.org/whl/cpu
+numpy==1.24.3
+torch==2.3.0
+requests==2.26.0
+mlx==0.9.1; sys_platform == 'darwin'
+gguf==0.6.0

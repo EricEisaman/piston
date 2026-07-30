@@ -4,6 +4,9 @@
 
 [build.environment]
   NODE_VERSION = "22.17.1"
+  # Used by scripts/prepare-natural-data.sh venv (not Netlify's auto pip — root
+  # ML deps live in requirements-ml.txt so Netlify does not install torch/numpy).
+  PYTHON_VERSION = "3.12"
   # Optional: narrow datasets if build limits are hit, e.g. DATASETS=tinyshakespeare,tinystories
 
 [[headers]]

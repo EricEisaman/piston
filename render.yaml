@@ -10,3 +10,5 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22.17.1"
+      - key: PYTHON_VERSION
+        value: "3.12"
