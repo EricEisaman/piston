@@ -13,12 +13,17 @@
 # Persist Rust/WASM + dataset artifacts across deploys so fingerprint skip can hit.
 # Requires netlify-plugin-cache in package.json (root). In the Netlify UI, leave
 # "Package directory" empty / repo root — not packages/example-common.
+#
+# Do NOT cache all of `.cargo`: `.cargo/git/checkouts` (wasm-bindgen) can contain
+# LICENSE-* paths that confuse netlify-plugin-cache/cpy (EISDIR on save).
+# Registry + bin are enough; git deps re-fetch when needed. `target` is the big win.
 [[plugins]]
   package = "netlify-plugin-cache"
   [plugins.inputs]
   paths = [
     "target",
-    ".cargo",
+    ".cargo/bin",
+    ".cargo/registry",
     ".cache/browser-train-data",
     "examples/piston-train-toy/static/tokenizer",
     "examples/piston-train-toy/static/tokenized"
