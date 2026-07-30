@@ -17,6 +17,7 @@
 		getVisualizerLayout,
 		getWorkerVersion,
 		initializeVisualizerCanvas,
+		isVisualizerCanvasTransferred,
 		resizeVisualizer,
 		trainingState,
 		updateVisualizerScript,
@@ -587,14 +588,17 @@
 		if (canvasEl && workerReady.current && offscreenInitializationState === 'idle') {
 			offscreenInitializationState = 'initializing';
 			try {
-				// Pre-size intrinsic canvas width so OffscreenCanvas starts at the correct width
+				// Intrinsic width must be set before transferControlToOffscreen();
+				// never touch .width afterward (InvalidStateError).
+				if (!isVisualizerCanvasTransferred(canvasEl)) {
+					const parent = canvasEl.parentElement;
+					const rect0 = (parent ?? canvasEl).getBoundingClientRect();
+					const w0 = Math.max(1, rect0.width | 0);
+					canvasEl.width = w0;
+					initializeVisualizerCanvas(canvasEl, labelHeight);
+				}
 				const parent = canvasEl.parentElement;
-				const rect0 = (parent ?? canvasEl).getBoundingClientRect();
-				const w0 = Math.max(1, rect0.width | 0);
-				canvasEl.width = w0;
-				initializeVisualizerCanvas(canvasEl, labelHeight);
-				// initial size
-				const rect = canvasEl.getBoundingClientRect();
+				const rect = (parent ?? canvasEl).getBoundingClientRect();
 				const w = Math.max(1, rect.width | 0);
 				resizeVisualizer(w);
 				setupResizeObserver();
@@ -608,13 +612,20 @@
 
 	// Recreate the canvas and force re-init when the worker restarts
 	const workerVersion = $derived.by(() => getWorkerVersion().current);
+	let lastCanvasWorkerVersion: number | null = null;
 	$effect(() => {
-		void workerVersion;
-		offscreenInitializationState = 'idle';
-		// Canvas DOM node is recreated under the keyed block; re-attach observer
+		const version = workerVersion;
+		const isFirst = lastCanvasWorkerVersion === null;
+		const changed = lastCanvasWorkerVersion !== version;
+		lastCanvasWorkerVersion = version;
+		// Avoid resetting to idle on first mount after a successful transfer — that
+		// re-enters init and tries to set HTMLCanvasElement.width post-transfer.
+		if (!isFirst && changed) {
+			offscreenInitializationState = 'idle';
+		}
+		// Canvas DOM node is recreated under the keyed block when version changes
 		setTimeout(() => {
 			setupResizeObserver();
-			// Push correct width immediately on re-init
 			measureAndResize();
 			requestAnimationFrame(() => updateOverflowShadow());
 		}, 0);

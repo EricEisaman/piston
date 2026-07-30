@@ -492,6 +492,12 @@ export function cleanupWorkers() {
 //
 // eslint-disable-next-line svelte/prefer-svelte-reactivity
 const canvasesWithAttemptedInitialization = new Set<HTMLCanvasElement>();
+
+/** True once transferControlToOffscreen() has been called for this element. */
+export function isVisualizerCanvasTransferred(canvas: HTMLCanvasElement): boolean {
+	return canvasesWithAttemptedInitialization.has(canvas);
+}
+
 export function initializeVisualizerCanvas(
 	canvas: HTMLCanvasElement,
 	labelPaddingCssPx: number = 0
@@ -499,11 +505,11 @@ export function initializeVisualizerCanvas(
 	if (!trainWorker) throw new Error('Worker not initialized');
 	if (canvasesWithAttemptedInitialization.has(canvas)) return;
 	const offscreen = canvas.transferControlToOffscreen();
+	canvasesWithAttemptedInitialization.add(canvas);
 	trainWorker.postMessage(
 		{ type: 'visualizer.canvas', data: { canvas: offscreen, labelPaddingCssPx } },
 		[offscreen]
 	);
-	canvasesWithAttemptedInitialization.add(canvas);
 }
 
 export function resizeVisualizer(width: number) {
