@@ -122,9 +122,21 @@ else
   }
   install_wasm_bindgen_cli() {
     purge_corrupt_cargo_registry_src
-    cargo install -f wasm-bindgen-cli \
+    # .cargo/config.toml sets build.target=wasm32-unknown-unknown for the crate.
+    # cargo install must target the HOST or getrandom fails with:
+    #   "wasm*-unknown-unknown targets are not supported by default"
+    local host_triple
+    rustup toolchain install stable --profile minimal >/dev/null 2>&1 || true
+    host_triple="$(rustc +stable -vV 2>/dev/null | sed -n 's/^host: //p')"
+    if [[ -z "$host_triple" ]]; then
+      host_triple="$(rustc -vV | sed -n 's/^host: //p')"
+    fi
+    echo "==> Installing wasm-bindgen-cli for host ${host_triple} (not wasm)"
+    # +stable avoids rust-toolchain.toml nightly override for this host tool.
+    cargo +stable install -f wasm-bindgen-cli \
       --git "$WASM_BINDGEN_GIT" \
-      --rev "$WASM_BINDGEN_REV"
+      --rev "$WASM_BINDGEN_REV" \
+      --target "$host_triple"
   }
   if command -v wasm-bindgen >/dev/null 2>&1 && [[ "${FORCE_WASM_BINDGEN:-}" != "1" ]]; then
     echo "==> wasm-bindgen already installed: $(wasm-bindgen --version) (set FORCE_WASM_BINDGEN=1 to reinstall)"
