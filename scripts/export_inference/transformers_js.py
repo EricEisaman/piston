@@ -114,8 +114,14 @@ def build_char_tokenizer_json(card: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def write_tokenizer_files(card: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+def write_tokenizer_files(
+    card: dict[str, Any],
+    out_dir: Path,
+    tokenizer_src: Path | None = None,
+) -> dict[str, Any]:
     """Write tokenizer.json + tokenizer_config.json. Returns tokenizer meta for docs."""
+    from .convert import _install_hf_tokenizer_files
+
     tok = card.get("tokenizer") or {}
     kind = tok.get("kind", "char")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -150,24 +156,21 @@ def write_tokenizer_files(card: dict[str, Any], out_dir: Path) -> dict[str, Any]
         )
         return {"kind": "char", "tokenizerFile": "tokenizer.json"}
 
-    note = {
-        "kind": "hf",
-        "tokenizerFile": tok.get("tokenizerFile") or "tokenizer.json",
-        "vocabSize": tok.get("vocabSize"),
-        "note": (
-            "Natural-language runs need the matching HuggingFace tokenizer.json "
-            "from Browser Train static/tokenizer copied into this folder."
-        ),
-    }
-    (out_dir / "tokenizer.note.json").write_text(json.dumps(note, indent=2), encoding="utf-8")
-    # Minimal stub so the folder is self-describing; AutoTokenizer will fail until user copies HF file
-    stub_config = {
-        "tokenizer_class": "PreTrainedTokenizerFast",
-        "model_max_length": _block_size(card),
-        "note": note["note"],
-    }
-    (out_dir / "tokenizer_config.json").write_text(json.dumps(stub_config, indent=2), encoding="utf-8")
-    return note
+    meta = _install_hf_tokenizer_files(
+        out_dir,
+        tokenizer_src,
+        vocab_size=tok.get("vocabSize"),
+    )
+    # Ensure a tokenizer_config.json exists for AutoTokenizer even when only tokenizer.json was copied.
+    config_path = out_dir / "tokenizer_config.json"
+    if not config_path.is_file():
+        stub_config = {
+            "tokenizer_class": "PreTrainedTokenizerFast",
+            "model_max_length": _block_size(card),
+            "clean_up_tokenization_spaces": False,
+        }
+        config_path.write_text(json.dumps(stub_config, indent=2), encoding="utf-8")
+    return meta
 
 
 def decoder_gpt2_config(card: dict[str, Any]) -> dict[str, Any]:
@@ -280,6 +283,7 @@ def write_transformers_js_package(
     out_dir: Path,
     opset: int = 17,
     ort_onnx_path: Path | None = None,
+    tokenizer_src: Path | None = None,
 ) -> None:
     """
     Write a Hub-style folder for Transformers.js.
@@ -293,7 +297,7 @@ def write_transformers_js_package(
     onnx_path = onnx_dir / "model.onnx"
 
     (out_dir / "browser_train_card.json").write_text(json.dumps(card, indent=2), encoding="utf-8")
-    write_tokenizer_files(card, out_dir)
+    write_tokenizer_files(card, out_dir, tokenizer_src=tokenizer_src)
     (out_dir / "generation_config.json").write_text(
         json.dumps(generation_config(card), indent=2), encoding="utf-8"
     )

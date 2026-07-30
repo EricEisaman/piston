@@ -297,6 +297,43 @@ export const INFERENCE_PRESET_DOCS: InferencePresetDoc[] = [
 		notes: 'Still large for many machines; keep prompts short when smoke-testing. NL HF tokenizer.json may need copying into the Transformers.js folder (see tokenizer.note.json).'
 	},
 	{
+		presetId: 'lil-siggy',
+		architecture: 'decoder',
+		support: 'exportable',
+		howToSelect:
+			'Presets → Lil Siggy. Upload a .txt/.md corpus under Dataset, then train. Quality defaults: GQA 12Q/6KV, gating, qkNorm.',
+		exportChecklist: [
+			'Upload corpus before Start (IndexedDB shards; FineWeb BPE 8192)',
+			'Purple ONNX is blocked while GQA / gating / qkNorm are on — switch to lil-siggy-onnx or apply onnx-export-friendly',
+			'In-app Metrics completions work on the quality preset'
+		],
+		sampleInput: '(a short prompt in the style of your uploaded corpus)',
+		expectedOutput: 'Continuation reflecting the custom corpus distribution.',
+		ortSnippet: ortComplete('Once upon a time', 32),
+		transformersJsSnippet: tjsGenerate('Once upon a time', 32),
+		notes: 'Lil Siggy quality uses GQA/gating/qkNorm — purple export is blocked. Train (or retrain) on lil-siggy-onnx for a GPT-2-width exportable graph; do not expect applying the overlay after a GQA run to rematerialize 12-head weights.'
+	},
+	{
+		presetId: 'lil-siggy-onnx',
+		architecture: 'decoder',
+		support: 'exportable',
+		howToSelect:
+			'Presets → Lil Siggy (ONNX exportable). Train on this preset (do not only overlay after a quality GQA run). Same uploaded corpus as Lil Siggy.',
+		exportChecklist: [
+			'Upload corpus under Dataset (shared with lil-siggy)',
+			'12 KV heads × headDim 64 → emb 768 (GQA stripped; heads restored for export)',
+			'Purple ONNX download → keep {run}.inference.safetensors + {run}.model.json + {run}.tokenizer.json together',
+			'convert auto-installs tokenizer into out/ort and out/transformers-js'
+		],
+		sampleInput: '(a short prompt in the style of your uploaded corpus)',
+		expectedOutput: 'Continuation reflecting the custom corpus distribution.',
+		ortSnippet: `// Lil Siggy uses HF BPE — prefer Transformers.js for string prompts.
+// ORT path: tokenize externally to input_ids, then run model.onnx (logits).
+// Char-only complete() in browser-train-infer will not decode BPE.`,
+		transformersJsSnippet: tjsGenerate('Once upon a time', 32),
+		notes: 'Primary inference path: Transformers.js AutoModelForCausalLM on out/transformers-js (gpt2). Keep the purple-download tokenizer sidecar next to the checkpoint so convert does not emit tokenizer.note.json.'
+	},
+	{
 		presetId: 'dyck-encoder',
 		architecture: 'encoder',
 		support: 'unsupported',

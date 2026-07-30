@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -36,7 +37,81 @@ def _load_model_card(checkpoint: Path, model_json: Path | None) -> dict[str, Any
     )
 
 
-def _write_ort_tokenizer(card: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+def _checkpoint_stem(checkpoint: Path) -> str:
+    name = checkpoint.name
+    if name.endswith(".inference.safetensors"):
+        return name[: -len(".inference.safetensors")]
+    if name.endswith(".safetensors"):
+        return name[: -len(".safetensors")]
+    return checkpoint.stem
+
+
+def _guess_model_json(checkpoint: Path) -> Path | None:
+    guess = checkpoint.parent / f"{_checkpoint_stem(checkpoint)}.model.json"
+    return guess if guess.is_file() else None
+
+
+def _guess_tokenizer_json(checkpoint: Path) -> Path | None:
+    """Browser Train downloads `{run}.tokenizer.json` next to the inference package."""
+    guess = checkpoint.parent / f"{_checkpoint_stem(checkpoint)}.tokenizer.json"
+    if guess.is_file():
+        return guess
+    plain = checkpoint.parent / "tokenizer.json"
+    return plain if plain.is_file() else None
+
+
+def _sibling_tokenizer_config(tokenizer_src: Path) -> Path | None:
+    candidates: list[Path] = [tokenizer_src.with_name("tokenizer_config.json")]
+    name = tokenizer_src.name
+    if name.endswith(".tokenizer.json"):
+        stem = name[: -len(".tokenizer.json")]
+        candidates.insert(0, tokenizer_src.parent / f"{stem}.tokenizer_config.json")
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _install_hf_tokenizer_files(
+    out_dir: Path,
+    tokenizer_src: Path | None,
+    *,
+    vocab_size: Any = None,
+) -> dict[str, Any]:
+    """Copy HF tokenizer into out_dir when available; otherwise write tokenizer.note.json."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if tokenizer_src is not None and tokenizer_src.is_file():
+        dest = out_dir / "tokenizer.json"
+        shutil.copy2(tokenizer_src, dest)
+        config_src = _sibling_tokenizer_config(tokenizer_src)
+        if config_src is not None:
+            shutil.copy2(config_src, out_dir / "tokenizer_config.json")
+        print(f"==> installed HF tokenizer → {dest}")
+        return {
+            "kind": "hf",
+            "tokenizerFile": "tokenizer.json",
+            "vocabSize": vocab_size,
+            "installedFrom": str(tokenizer_src),
+        }
+
+    note = {
+        "kind": "hf",
+        "tokenizerFile": "tokenizer.json",
+        "vocabSize": vocab_size,
+        "note": (
+            "Copy the matching HF tokenizer.json next to the checkpoint "
+            "(Browser Train purple download emits {run}.tokenizer.json) or pass --tokenizer."
+        ),
+    }
+    (out_dir / "tokenizer.note.json").write_text(json.dumps(note, indent=2), encoding="utf-8")
+    return note
+
+
+def _write_ort_tokenizer(
+    card: dict[str, Any],
+    out_dir: Path,
+    tokenizer_src: Path | None = None,
+) -> dict[str, Any]:
     tok = card.get("tokenizer") or {}
     kind = tok.get("kind", "char")
     if kind == "char":
@@ -51,25 +126,11 @@ def _write_ort_tokenizer(card: dict[str, Any], out_dir: Path) -> dict[str, Any]:
         (out_dir / "special_tokens.json").write_text(json.dumps(special, indent=2), encoding="utf-8")
         return {"kind": "char", "vocabFile": "vocab.json", "specialTokensFile": "special_tokens.json"}
 
-    note = {
-        "kind": "hf",
-        "tokenizerFile": tok.get("tokenizerFile") or "tokenizer.json",
-        "vocabSize": tok.get("vocabSize"),
-        "note": "Copy the matching HF tokenizer.json from Browser Train static/tokenizer into this folder.",
-    }
-    (out_dir / "tokenizer.note.json").write_text(json.dumps(note, indent=2), encoding="utf-8")
-    return note
-
-
-def _guess_model_json(checkpoint: Path) -> Path | None:
-    stem = checkpoint.name
-    if stem.endswith(".inference.safetensors"):
-        guess = checkpoint.parent / (stem[: -len(".inference.safetensors")] + ".model.json")
-    elif stem.endswith(".safetensors"):
-        guess = checkpoint.parent / (stem[: -len(".safetensors")] + ".model.json")
-    else:
-        guess = checkpoint.with_suffix(".model.json")
-    return guess if guess.is_file() else None
+    return _install_hf_tokenizer_files(
+        out_dir,
+        tokenizer_src,
+        vocab_size=tok.get("vocabSize"),
+    )
 
 
 def parse_targets(raw: str) -> set[str]:
@@ -145,12 +206,13 @@ def write_ort_package(
     module: Any,
     out_dir: Path,
     opset: int,
+    tokenizer_src: Path | None = None,
 ) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     onnx_path = out_dir / "model.onnx"
     print(f"==> exporting ORT {onnx_path}")
     inputs = _export_ort_onnx(architecture, module, onnx_path, opset)
-    tok_meta = _write_ort_tokenizer(card, out_dir)
+    tok_meta = _write_ort_tokenizer(card, out_dir, tokenizer_src=tokenizer_src)
     (out_dir / "model.json").write_text(json.dumps(card, indent=2), encoding="utf-8")
     manifest = {
         "architecture": architecture,
@@ -173,6 +235,7 @@ def convert(
     model_json: Path | None = None,
     opset: int = 17,
     targets: set[str] | None = None,
+    tokenizer: Path | None = None,
 ) -> None:
     from .transformers_js import write_transformers_js_package
     from .weights import (
@@ -186,6 +249,14 @@ def convert(
     out_dir.mkdir(parents=True, exist_ok=True)
     card = _load_model_card(checkpoint, model_json)
     assert_exportable(card)
+    tokenizer_src = tokenizer if tokenizer and tokenizer.is_file() else _guess_tokenizer_json(checkpoint)
+    if tokenizer_src:
+        print(f"==> HF tokenizer source {tokenizer_src}")
+    elif (card.get("tokenizer") or {}).get("kind") == "hf":
+        print(
+            "==> warning: no {run}.tokenizer.json found beside checkpoint; "
+            "Transformers.js / HF apps need --tokenizer or the purple-download sidecar"
+        )
 
     architecture = card.get("architecture") or card["config"]["model"]["topology"]
     if architecture == "encoder":
@@ -227,6 +298,7 @@ def convert(
             module=module,
             out_dir=ort_dir,
             opset=opset,
+            tokenizer_src=tokenizer_src,
         )
 
     if want_tjs and tjs_dir is not None:
@@ -237,6 +309,7 @@ def convert(
             out_dir=tjs_dir,
             opset=opset,
             ort_onnx_path=ort_onnx,
+            tokenizer_src=tokenizer_src,
         )
 
     print(f"==> done → {out_dir}")
@@ -255,6 +328,12 @@ def main(argv: list[str] | None = None) -> None:
         default=None,
         help="Sidecar *.model.json from Browser Train download",
     )
+    convert_p.add_argument(
+        "--tokenizer",
+        type=Path,
+        default=None,
+        help="HF tokenizer.json (defaults to {run}.tokenizer.json beside the checkpoint)",
+    )
     convert_p.add_argument("--opset", type=int, default=17)
     convert_p.add_argument(
         "--targets",
@@ -272,6 +351,7 @@ def main(argv: list[str] | None = None) -> None:
             model_json=model_json,
             opset=args.opset,
             targets=parse_targets(args.targets),
+            tokenizer=args.tokenizer,
         )
     else:
         parser.error(f"unknown command {args.cmd}")

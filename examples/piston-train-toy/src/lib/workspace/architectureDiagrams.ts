@@ -116,6 +116,32 @@ flowchart TB
   Blk --> Head --> Tip
 `);
 
+const LIL_SIGGY = withStyles(`
+flowchart TB
+  Upload["Upload .txt / .md"]:::input
+  EncTok["FineWeb BPE 8192 encode"]:::embed
+  Shards["llm.c shards in IndexedDB"]:::data
+  Emb["Embed dim 768"]:::embed
+  Blk["12x decoder · GQA 12Q/6KV<br/>gating + qkNorm"]:::attn
+  Mlp["GELU MLP"]:::mlp
+  Head["LM head"]:::out
+  Complete["Metrics completions"]:::tip
+  Upload --> EncTok --> Shards --> Emb --> Blk --> Mlp
+  Blk --> Head --> Complete
+`);
+
+const LIL_SIGGY_ONNX = withStyles(`
+flowchart TB
+  Upload["Same Lil Siggy corpus"]:::input
+  Emb["Embed + learned PE"]:::embed
+  Blk["12x causal blocks<br/>export-safe attn"]:::attn
+  Mlp["Standard GELU MLP"]:::mlp
+  Head["LM head"]:::out
+  Tip["Purple ONNX + tokenizer.json"]:::tip
+  Upload --> Emb --> Blk --> Mlp
+  Blk --> Head --> Tip
+`);
+
 const ENCODER_DYCK = withStyles(`
 flowchart LR
   Seq["Dyck sequence<br/>brackets / parens"]:::input
@@ -186,6 +212,18 @@ export const ARCHITECTURE_DIAGRAMS: ArchitectureDiagram[] = [
 		presetId: 'fineweb-onnx',
 		summary: 'FineWeb GPT-2-shaped decoder configured for purple ONNX inference export.',
 		mermaid: DECODER_FINEWEB_ONNX
+	},
+	{
+		presetId: 'lil-siggy',
+		summary:
+			'Custom-corpus GPT-2-sized decoder with GQA (12Q/6KV), attention gating, and qkNorm. Upload text in Dataset controls.',
+		mermaid: LIL_SIGGY
+	},
+	{
+		presetId: 'lil-siggy-onnx',
+		summary:
+			'Lil Siggy export sibling: onnx-export-friendly overlay + tokenizer.json with purple download.',
+		mermaid: LIL_SIGGY_ONNX
 	},
 	{
 		presetId: 'onnx-export-friendly',

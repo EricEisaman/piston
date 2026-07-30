@@ -6,6 +6,7 @@
 	import { currentRun, resetWorkspace, restoreRun, runCounter } from '$lib/workspace/runs.svelte';
 	import {
 		activeTab,
+		canStartTraining,
 		configOpen,
 		getIconStrokeWidth,
 		hasWebGPU,
@@ -393,11 +394,9 @@
 								{/if}
 								<ActionButton
 									color="green"
-									disabled={trainingState.current !== 'stopped' || !workerReady.current}
+									disabled={!canStartTraining()}
 									onclick={() => startTraining()}
-									highlighted={workerReady.current &&
-										trainingState.current === 'stopped' &&
-										!tourState.current.startedExperiment}
+									highlighted={canStartTraining() && !tourState.current.startedExperiment}
 									class="w-full h-7.5"
 								>
 									<span class="flex items-center justify-center gap-1.5 w-full">

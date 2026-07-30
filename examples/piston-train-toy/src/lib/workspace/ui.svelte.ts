@@ -1,3 +1,8 @@
+import { PUBLIC_DATA_URL } from '$env/static/public';
+import { hasLilSiggyCorpus } from '$lib/train/data/natural/customCorpus.svelte';
+import { LIL_SIGGY_DATASET } from '$lib/train/data/natural/customCorpus';
+import { NATURAL_DATASET_META, type NaturalDatasetName } from '$lib/train/data/natural/dataset';
+
 import { config } from './config.svelte';
 import { LocalStorage } from './localStorage.svelte';
 import { newRun, restoreRun, type RunData } from './runs.svelte';
@@ -15,6 +20,21 @@ import {
 	workerStep,
 	workerStopTraining
 } from './workers.svelte';
+
+/** Datasets that reuse another shipped tokenizer directory for HF files. */
+const TOKENIZER_DATASET_ALIAS: Partial<Record<NaturalDatasetName, NaturalDatasetName>> = {
+	'lil-siggy': 'fineweb'
+};
+
+export function canStartTraining(): boolean {
+	if (trainingState.current !== 'stopped' || !workerReady.current) {
+		return false;
+	}
+	if (config.data.dataset === LIL_SIGGY_DATASET && !hasLilSiggyCorpus()) {
+		return false;
+	}
+	return true;
+}
 
 export const isMobile = $state({ current: false });
 export type AppTab = 'about' | 'metrics' | 'docs' | 'architectures';
@@ -328,6 +348,48 @@ export async function saveInferenceExport() {
 		new Blob([modelJson], { type: 'application/json' }),
 		`${runId}.model.json`
 	);
+	await downloadHfTokenizerAlongsideExport(runId);
+}
+
+/**
+ * For HF natural-language runs, also download tokenizer.json so ORT / Transformers.js
+ * packages do not require hunting under static/.
+ */
+async function downloadHfTokenizerAlongsideExport(runId: string): Promise<void> {
+	const dataset = config.data.dataset;
+	if (!(dataset in NATURAL_DATASET_META)) {
+		return;
+	}
+	if (config.data.natural.vocabSize === 'char') {
+		return;
+	}
+	const naturalName = dataset as NaturalDatasetName;
+	const tokenizerDataset = TOKENIZER_DATASET_ALIAS[naturalName] ?? naturalName;
+	const vocab = config.data.natural.vocabSize;
+	const base = PUBLIC_DATA_URL.endsWith('/') ? PUBLIC_DATA_URL.slice(0, -1) : PUBLIC_DATA_URL;
+	const tokenizerDir = `${base}/tokenizer/${tokenizerDataset}/${vocab}`;
+	try {
+		const tokenizerRes = await fetch(`${tokenizerDir}/tokenizer.json`);
+		if (!tokenizerRes.ok) {
+			console.warn(
+				`[Main] Could not fetch tokenizer.json from ${tokenizerDir}/tokenizer.json: ${tokenizerRes.status}`
+			);
+			return;
+		}
+		triggerBrowserDownload(
+			new Blob([await tokenizerRes.text()], { type: 'application/json' }),
+			`${runId}.tokenizer.json`
+		);
+		const configRes = await fetch(`${tokenizerDir}/tokenizer_config.json`);
+		if (configRes.ok) {
+			triggerBrowserDownload(
+				new Blob([await configRes.text()], { type: 'application/json' }),
+				`${runId}.tokenizer_config.json`
+			);
+		}
+	} catch (err) {
+		console.warn('[Main] Failed to download tokenizer files with inference export', err);
+	}
 }
 
 // Function to start training
@@ -337,6 +399,11 @@ export function startTraining(
 	const { run, resumeFrom } = options ?? {};
 
 	if (trainingState.current !== 'stopped' || !workerReady.current) return;
+
+	if (config.data.dataset === LIL_SIGGY_DATASET && !hasLilSiggyCorpus()) {
+		console.error('[Main] Lil Siggy requires an uploaded corpus before training');
+		return;
+	}
 
 	trainingState.current = 'training';
 	const effectiveRun = run ? restoreRun(run) : newRun(JSON.parse(JSON.stringify(config)));

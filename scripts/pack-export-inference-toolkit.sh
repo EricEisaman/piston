@@ -134,7 +134,7 @@ if [[ ! -x "$PY" ]]; then
 fi
 
 if [[ "$#" -lt 1 ]]; then
-  echo "Usage: ./convert.sh path/to/run.inference.safetensors -o ./out [--model-json path/to/run.model.json] [--targets both|ort|transformers-js]" >&2
+  echo "Usage: ./convert.sh path/to/run.inference.safetensors -o ./out [--model-json path/to/run.model.json] [--tokenizer path/to/run.tokenizer.json] [--targets both|ort|transformers-js]" >&2
   exit 1
 fi
 

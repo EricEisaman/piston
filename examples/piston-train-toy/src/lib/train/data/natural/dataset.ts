@@ -7,11 +7,23 @@ import { AsyncIterableDataset } from '@piston-ml/piston-web';
 
 import type { ToyTokenizer } from '../toy/types';
 
+import { getLilSiggyShard, LIL_SIGGY_DATASET } from './customCorpus';
 import { globalShardCache } from './shardCache';
 
 export type NaturalDatasetSplit = 'train' | 'val';
 
-export type NaturalDatasetName = 'tinychat' | 'tinyshakespeare' | 'tinystories' | 'fineweb';
+export type NaturalDatasetName =
+	| 'tinychat'
+	| 'tinyshakespeare'
+	| 'tinystories'
+	| 'fineweb'
+	| 'lil-siggy';
+
+/** Datasets that reuse another dataset's shipped HF tokenizer directory. */
+const TOKENIZER_DATASET_ALIAS: Partial<Record<NaturalDatasetName, NaturalDatasetName>> = {
+	'lil-siggy': 'fineweb'
+};
+
 export type NaturalDatasetMeta = {
 	name: string;
 	description: string;
@@ -58,6 +70,18 @@ export const NATURAL_DATASET_META: Record<NaturalDatasetName, NaturalDatasetMeta
 			entries: [
 				{
 					name: 'Penedo et al., 2024'
+				}
+			]
+		}
+	},
+	'lil-siggy': {
+		name: 'Lil Siggy (custom corpus)',
+		description:
+			'Your uploaded text, encoded with the FineWeb 8192 BPE tokenizer. Pair with the Lil Siggy GPT-2-sized presets.',
+		citations: {
+			entries: [
+				{
+					name: 'Penedo et al., 2024 (tokenizer lineage)'
 				}
 			]
 		}
@@ -190,7 +214,10 @@ export class NaturalLanguageDataset extends AsyncIterableDataset<number[]> {
 			}
 		} else {
 			this.vocabSize = config.vocabSize;
-			this.tokenizer = PreTrainedTokenizer.fromPretrained(`${this.name}/${this.vocabSize}`);
+			const tokenizerDataset = TOKENIZER_DATASET_ALIAS[this.name] ?? this.name;
+			this.tokenizer = PreTrainedTokenizer.fromPretrained(
+				`${tokenizerDataset}/${this.vocabSize}`
+			);
 			this.maskId = this.tokenizer.then((tokenizer) => tokenizer.maskTokenId!);
 			this.eosId = this.tokenizer.then((tokenizer) => tokenizer.eosTokenId!);
 			this.bosId = this.tokenizer.then((tokenizer) => tokenizer.bosTokenId!);
@@ -212,9 +239,17 @@ export class NaturalLanguageDataset extends AsyncIterableDataset<number[]> {
 		);
 	}
 
+	private async loadShardTokens(shardIndex: number): Promise<Uint16Array | null> {
+		if (this.name === LIL_SIGGY_DATASET) {
+			const buf = await getLilSiggyShard(this.split, shardIndex);
+			return buf ? parseShard(buf) : null;
+		}
+		return fetchShard(this.buildShardUrl(shardIndex));
+	}
+
 	private async ensureCurrentLoaded(): Promise<void> {
 		if (this.shard) return;
-		const first = await fetchShard(this.buildShardUrl(0));
+		const first = await this.loadShardTokens(0);
 		if (!first) {
 			// No data available; mark as exhausted
 			this.shard = null;
@@ -222,7 +257,7 @@ export class NaturalLanguageDataset extends AsyncIterableDataset<number[]> {
 		}
 		this.shard = { data: first, cursor: 0 };
 		if (this.split === 'train') {
-			this.nextShardPromise = fetchShard(this.buildShardUrl(1));
+			this.nextShardPromise = this.loadShardTokens(1);
 		}
 	}
 
@@ -241,7 +276,7 @@ export class NaturalLanguageDataset extends AsyncIterableDataset<number[]> {
 		this.shardIndex += 1;
 		this.shard = { data: next, cursor: 0 };
 		// Prefetch following shard
-		this.nextShardPromise = fetchShard(this.buildShardUrl(this.shardIndex + 1));
+		this.nextShardPromise = this.loadShardTokens(this.shardIndex + 1);
 	}
 
 	public async *[Symbol.asyncIterator](): AsyncIterator<number[]> {
@@ -273,7 +308,7 @@ export class NaturalLanguageDataset extends AsyncIterableDataset<number[]> {
 	public async importState(state: { shardIndex: number; cursor: number } | null): Promise<void> {
 		if (!state) return;
 		this.shardIndex = Math.max(0, state.shardIndex | 0);
-		const current = await fetchShard(this.buildShardUrl(this.shardIndex));
+		const current = await this.loadShardTokens(this.shardIndex);
 		if (!current) {
 			this.shard = null;
 			this.nextShardPromise = null;
@@ -281,7 +316,7 @@ export class NaturalLanguageDataset extends AsyncIterableDataset<number[]> {
 		}
 		this.shard = { data: current, cursor: Math.min(state.cursor | 0, current.length) };
 		if (this.split === 'train') {
-			this.nextShardPromise = fetchShard(this.buildShardUrl(this.shardIndex + 1));
+			this.nextShardPromise = this.loadShardTokens(this.shardIndex + 1);
 		} else {
 			this.nextShardPromise = null;
 		}

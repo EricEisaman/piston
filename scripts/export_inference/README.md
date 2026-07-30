@@ -64,8 +64,13 @@ out/
 `input_ids` + `attention_mask` → `logits`. Load with `@huggingface/transformers`
 `AutoTokenizer` + `AutoModelForCausalLM` (see `browser-train-infer-tjs`).
 
-Natural-language HF tokenizers: copy the matching `tokenizer.json` from Browser Train
-`static/tokenizer` into the package when `tokenizer.note.json` is present.
+Natural-language HF tokenizers: Browser Train’s purple download also saves
+`{run}.tokenizer.json` (and often `{run}.tokenizer_config.json`). Keep those next to
+`{run}.inference.safetensors` — `convert` auto-installs them into `ort/` and
+`transformers-js/` as `tokenizer.json`. Override with `--tokenizer path/to/tokenizer.json`.
+
+If `tokenizer.note.json` still appears, the sidecar was missing; pass `--tokenizer` or
+copy the FineWeb/TinyStories file from `static/tokenizer`.
 
 ### Encoder-decoder toys
 
@@ -80,9 +85,15 @@ In Browser Train, use:
 - **Toy: Sort Characters (ONNX exportable)** (`sort-characters-onnx`)
 - **TinyStories (ONNX exportable)** (`tinystories-onnx`)
 - **FineWeb GPT-2-sized (ONNX exportable)** (`fineweb-onnx`)
+- **Lil Siggy (custom corpus · ONNX exportable)** (`lil-siggy-onnx`) — train on this sibling (not quality `lil-siggy`) so width stays 12×64 / 768 after GQA is stripped
 - Or layer **ONNX export-friendly (transformer)** on any decoder / encoder-decoder run
 
-Unsupported (converter will refuse): RoPE, ALiBi, GQA, attention gating, sinks, softcap, RNN, encoder-only.
+Unsupported (converter will refuse): RoPE, ALiBi, GQA, attention gating, qkNorm, sinks, softcap, RNN, encoder-only.
+
+**Lil Siggy / Transformers.js:** after convert, load `out/transformers-js` with
+`AutoTokenizer` + `AutoModelForCausalLM` (`model_type: gpt2`). The stock
+`browser-train-infer` ORT demo only string-prompts char tokenizers — use Transformers.js
+(or tokenize externally) for Lil Siggy BPE.
 
 ## Phase 3 (not in this package)
 

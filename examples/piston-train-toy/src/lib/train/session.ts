@@ -221,10 +221,15 @@ export class TrainingSession {
 			};
 		}
 		if (this.trainDataset instanceof NaturalLanguageDataset) {
+			const asNumber = (value: unknown): number | null =>
+				typeof value === 'number' && Number.isFinite(value) ? value : null;
 			return {
 				kind: 'hf',
 				vocabSize: calculateVocabSize(this.config, this.trainDataset),
-				tokenizerFile: 'tokenizer.json'
+				tokenizerFile: 'tokenizer.json',
+				bosId: asNumber(this.trainDataset.bosId),
+				eosId: asNumber(this.trainDataset.eosId),
+				padId: null
 			};
 		}
 		return { kind: 'hf', vocabSize: 0 };

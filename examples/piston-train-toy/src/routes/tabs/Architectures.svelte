@@ -40,8 +40,9 @@
 	<header class="space-y-1">
 		<h2 class="font-medium text-base">Architectures</h2>
 		<p class="text-neutral-600 text-xs leading-relaxed">
-			Colorized Mermaid views of each preset in the selector — encoder–decoder toys, encoder-only
-			Dyck, and decoder-only TinyStories / FineWeb (plus the ONNX-friendly modifier).
+			Colorized Mermaid views of each preset — encoder–decoder toys, encoder-only Dyck, decoder-only
+			TinyStories / FineWeb, and Lil Siggy (custom corpus · GQA / gating / qkNorm), plus the
+			ONNX-friendly modifier.
 		</p>
 		<div class="flex flex-wrap gap-1.5 pt-1 text-[10px] font-mono uppercase tracking-wide">
 			<span class="px-1.5 py-0.5 rounded border bg-blue-50 text-blue-900 border-blue-300"

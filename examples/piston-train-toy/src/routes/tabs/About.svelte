@@ -398,7 +398,11 @@
 											class="underline decoration-dotted underline-offset-2"
 											>The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale</a
 										></FN
-									> (and DM me if you get it to work!).
+									> (and DM me if you get it to work!). Or go bigger on your own text with
+									{@render sPreset('Lil Siggy', 'lil-siggy', 'dataset-control')} — upload a
+									.txt/.md under Dataset, train with GQA / gating / qkNorm, then switch to
+									{@render sPreset('Lil Siggy ONNX', 'lil-siggy-onnx', 'dataset-control')} for
+									purple export (tokenizer.json downloads with the package).
 								</p>
 							</div>
 							{#if isOverflowing && !expanded}

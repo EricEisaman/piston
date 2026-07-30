@@ -18,6 +18,9 @@ export type InferenceTokenizerSpec =
 			/** Relative note: tokenizer.json should sit next to the checkpoint after convert */
 			vocabSize: number;
 			tokenizerFile?: string;
+			bosId?: number | null;
+			eosId?: number | null;
+			padId?: number | null;
 	  };
 
 export interface InferenceExportProfile {
@@ -158,6 +161,9 @@ export const getInferenceExportBlockers = (config: Config): string[] => {
 	}
 	if (profile.attentionGating) {
 		blockers.push('disable attention gating for ONNX export');
+	}
+	if (profile.qkNorm) {
+		blockers.push('disable qkNorm for ONNX export');
 	}
 	if (profile.sinks) {
 		blockers.push('disable attention sinks for ONNX export');

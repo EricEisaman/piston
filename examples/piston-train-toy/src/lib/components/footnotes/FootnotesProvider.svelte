@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { Action } from 'svelte/action';
 
 	import { setContext } from 'svelte';
 
@@ -22,6 +23,31 @@
 	}
 
 	setContext(FOOTNOTES_CTX, { register });
+
+	/** Force http(s) footnote links to open in a new tab (↩︎ same-page jumps stay in-tab). */
+	const openExternalInNewTab: Action<HTMLElement> = (node) => {
+		const apply = () => {
+			for (const anchor of node.querySelectorAll('a[href]')) {
+				const href = anchor.getAttribute('href') ?? '';
+				if (!/^https?:\/\//i.test(href)) {
+					continue;
+				}
+				anchor.setAttribute('target', '_blank');
+				const rel = new Set((anchor.getAttribute('rel') ?? '').split(/\s+/).filter(Boolean));
+				rel.add('noopener');
+				rel.add('noreferrer');
+				anchor.setAttribute('rel', [...rel].join(' '));
+			}
+		};
+		apply();
+		const observer = new MutationObserver(apply);
+		observer.observe(node, { childList: true, subtree: true });
+		return {
+			destroy() {
+				observer.disconnect();
+			}
+		};
+	};
 </script>
 
 {@render children()}
@@ -32,7 +58,7 @@
 		{#each entries as e (e.key)}
 			<li id={`fn-${e.key}`} role="doc-endnote" class="grid grid-cols-[auto_1fr] gap-x-3">
 				<span class="text-neutral-500 tabular-nums">{e.label + '.'}</span>
-				<div>
+				<div use:openExternalInNewTab>
 					{@render e.content()}
 					<a href={`#fnref-${e.key}`} class="ml-1 no-underline" aria-label="Back to content">↩︎</a>
 				</div>

@@ -134,6 +134,81 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 		label: 'FineWeb GPT-2-sized (ONNX exportable)',
 		layers: [{ preset: 'fineweb' }, { preset: 'onnx-export-friendly' }]
 	},
+	'lil-siggy': {
+		label: 'Lil Siggy (custom corpus · GPT-2-sized)',
+		layers: [
+			{ preset: 'fineweb' },
+			{
+				data: {
+					dataset: 'lil-siggy',
+					natural: {
+						vocabSize: 8192,
+						contextSize: 64
+					}
+				},
+				model: {
+					transformer: {
+						attention: {
+							nKeyValueHeads: 6,
+							groupedQueryAttention: {
+								present: true,
+								queryHeadsPerKeyValueHead: 2
+							},
+							gating: {
+								present: true,
+								activation: 'sigmoid',
+								sites: {
+									afterSdpaOutput: true,
+									afterValueProjection: false,
+									afterKeyProjection: false,
+									afterQueryProjection: false,
+									afterFinalOutputProjection: false
+								}
+							}
+						},
+						normalization: {
+							qkNorm: {
+								present: true,
+								type: 'rmsnorm',
+								eps: 1e-5
+							}
+						}
+					}
+				},
+				training: {
+					validation: {
+						batchSize: 4,
+						temperature: 0.8,
+						completions: {
+							present: true,
+							decodingBatchSize: 1,
+							amount: 'subset',
+							subsetSize: 1
+						}
+					}
+				}
+			}
+		]
+	},
+	'lil-siggy-onnx': {
+		label: 'Lil Siggy (custom corpus · ONNX exportable)',
+		layers: [
+			{ preset: 'lil-siggy' },
+			{ preset: 'onnx-export-friendly' },
+			// Quality Lil Siggy uses GQA with nKeyValueHeads=6 (12Q). After GQA is stripped,
+			// restore 12 KV heads so width stays GPT-2 (768 = 12 × 64), not a 384-d model.
+			{
+				model: {
+					transformer: {
+						attention: {
+							nKeyValueHeads: 12,
+							groupedQueryAttention: { present: false }
+						}
+					}
+				}
+			}
+		]
+	},
 	'reverse-sequence': {
 		label: 'Toy: Reverse Sequence',
 		layers: [{ preset: 'transformer-toy-base' }, { data: { dataset: 'reverse' } }]

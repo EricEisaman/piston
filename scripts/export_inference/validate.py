@@ -25,6 +25,8 @@ def get_blockers(model_card: dict[str, Any]) -> list[str]:
         blockers.append("disable grouped-query attention (GQA)")
     if profile.get("attentionGating"):
         blockers.append("disable attention gating")
+    if profile.get("qkNorm"):
+        blockers.append("disable qkNorm")
     if profile.get("sinks"):
         blockers.append("disable attention sinks")
     if profile.get("softcapAttention") or profile.get("softcapLogits"):
