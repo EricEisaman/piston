@@ -153,6 +153,9 @@ pnpm --filter example-common build
 echo "==> Building @piston-ml/piston-web"
 pnpm --filter @piston-ml/piston-web build
 
+echo "==> Packing Browser Train ONNX toolkit zip (static download)"
+bash "$ROOT/scripts/pack-export-inference-toolkit.sh"
+
 echo "==> Building piston-train-toy (Browser Train)"
 pnpm --filter piston-train-toy build
 

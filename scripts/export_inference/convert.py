@@ -1,4 +1,4 @@
-"""Convert Browser Train inference packages to ONNX + tokenizer/manifest."""
+"""Convert Browser Train inference packages to ONNX (+ optional Transformers.js layout)."""
 
 from __future__ import annotations
 
@@ -8,16 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import torch
-
-from .models import DecoderLM, EncoderDecoderLM
 from .validate import assert_exportable
-from .weights import (
-    build_decoder_from_card,
-    build_encdec_from_card,
-    load_into_module,
-    load_tensors,
-)
 
 
 def _load_model_card(checkpoint: Path, model_json: Path | None) -> dict[str, Any]:
@@ -45,7 +36,7 @@ def _load_model_card(checkpoint: Path, model_json: Path | None) -> dict[str, Any
     )
 
 
-def _write_tokenizer(card: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+def _write_ort_tokenizer(card: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     tok = card.get("tokenizer") or {}
     kind = tok.get("kind", "char")
     if kind == "char":
@@ -70,34 +61,44 @@ def _write_tokenizer(card: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     return note
 
 
-def convert(
-    checkpoint: Path,
-    out_dir: Path,
-    model_json: Path | None = None,
-    opset: int = 17,
-) -> None:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    card = _load_model_card(checkpoint, model_json)
-    assert_exportable(card)
-
-    architecture = card.get("architecture") or card["config"]["model"]["topology"]
-    if architecture == "encoder":
-        architecture = "decoder"
-    print(f"==> architecture={architecture}")
-
-    tensors = load_tensors(str(checkpoint))
-    print(f"==> {len(tensors)} model tensors")
-
-    if architecture == "encoder-decoder":
-        module: torch.nn.Module = build_encdec_from_card(card)
+def _guess_model_json(checkpoint: Path) -> Path | None:
+    stem = checkpoint.name
+    if stem.endswith(".inference.safetensors"):
+        guess = checkpoint.parent / (stem[: -len(".inference.safetensors")] + ".model.json")
+    elif stem.endswith(".safetensors"):
+        guess = checkpoint.parent / (stem[: -len(".safetensors")] + ".model.json")
     else:
-        module = build_decoder_from_card(card)
-    module.eval()
-    load_into_module(module, tensors, architecture)
+        guess = checkpoint.with_suffix(".model.json")
+    return guess if guess.is_file() else None
 
-    onnx_path = out_dir / "model.onnx"
-    print(f"==> exporting {onnx_path}")
 
+def parse_targets(raw: str) -> set[str]:
+    text = raw.strip().lower()
+    if text in ("both", "all"):
+        return {"ort", "transformers-js"}
+    parts = {p.strip() for p in text.split(",") if p.strip()}
+    allowed = {"ort", "transformers-js"}
+    unknown = parts - allowed
+    if unknown:
+        raise SystemExit(
+            f"Unknown --targets {sorted(unknown)}; use ort, transformers-js, or both"
+        )
+    if not parts:
+        raise SystemExit("--targets must include ort and/or transformers-js")
+    return parts
+
+
+def _export_ort_onnx(
+    architecture: str,
+    module: Any,
+    onnx_path: Path,
+    opset: int,
+) -> list[dict[str, str]]:
+    import torch
+
+    from .models import DecoderLM, EncoderDecoderLM
+
+    onnx_path.parent.mkdir(parents=True, exist_ok=True)
     if architecture == "encoder-decoder":
         assert isinstance(module, EncoderDecoderLM)
         enc = torch.zeros((1, min(8, module.block_src)), dtype=torch.long)
@@ -115,30 +116,42 @@ def convert(
             },
             opset_version=opset,
         )
-        inputs = [
+        return [
             {"name": "encoder_input_ids", "dtype": "int64"},
             {"name": "decoder_input_ids", "dtype": "int64"},
         ]
-    else:
-        assert isinstance(module, DecoderLM)
-        ids = torch.zeros((1, min(8, module.block_size)), dtype=torch.long)
-        torch.onnx.export(
-            module,
-            ids,
-            str(onnx_path),
-            input_names=["input_ids"],
-            output_names=["logits"],
-            dynamic_axes={
-                "input_ids": {0: "batch", 1: "seq"},
-                "logits": {0: "batch", 1: "seq"},
-            },
-            opset_version=opset,
-        )
-        inputs = [{"name": "input_ids", "dtype": "int64"}]
 
-    tok_meta = _write_tokenizer(card, out_dir)
+    assert isinstance(module, DecoderLM)
+    ids = torch.zeros((1, min(8, module.block_size)), dtype=torch.long)
+    torch.onnx.export(
+        module,
+        ids,
+        str(onnx_path),
+        input_names=["input_ids"],
+        output_names=["logits"],
+        dynamic_axes={
+            "input_ids": {0: "batch", 1: "seq"},
+            "logits": {0: "batch", 1: "seq"},
+        },
+        opset_version=opset,
+    )
+    return [{"name": "input_ids", "dtype": "int64"}]
+
+
+def write_ort_package(
+    *,
+    card: dict[str, Any],
+    architecture: str,
+    module: Any,
+    out_dir: Path,
+    opset: int,
+) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    onnx_path = out_dir / "model.onnx"
+    print(f"==> exporting ORT {onnx_path}")
+    inputs = _export_ort_onnx(architecture, module, onnx_path, opset)
+    tok_meta = _write_ort_tokenizer(card, out_dir)
     (out_dir / "model.json").write_text(json.dumps(card, indent=2), encoding="utf-8")
-
     manifest = {
         "architecture": architecture,
         "onnx": "model.onnx",
@@ -150,14 +163,90 @@ def convert(
         "dataset": card.get("dataset"),
     }
     (out_dir / "ort-manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    print(f"==> wrote {out_dir}")
+    print(f"==> wrote ORT package {out_dir}")
+    return onnx_path
+
+
+def convert(
+    checkpoint: Path,
+    out_dir: Path,
+    model_json: Path | None = None,
+    opset: int = 17,
+    targets: set[str] | None = None,
+) -> None:
+    from .transformers_js import write_transformers_js_package
+    from .weights import (
+        build_decoder_from_card,
+        build_encdec_from_card,
+        load_into_module,
+        load_tensors,
+    )
+
+    targets = targets or {"ort", "transformers-js"}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    card = _load_model_card(checkpoint, model_json)
+    assert_exportable(card)
+
+    architecture = card.get("architecture") or card["config"]["model"]["topology"]
+    if architecture == "encoder":
+        architecture = "decoder"
+    print(f"==> architecture={architecture} targets={sorted(targets)}")
+
+    tensors = load_tensors(str(checkpoint))
+    print(f"==> {len(tensors)} model tensors")
+
+    if architecture == "encoder-decoder":
+        module: Any = build_encdec_from_card(card)
+    else:
+        module = build_decoder_from_card(card)
+    module.eval()
+    load_into_module(module, tensors, architecture)
+
+    want_ort = "ort" in targets
+    want_tjs = "transformers-js" in targets
+
+    # Layout:
+    # - ort only → flat out/ (back-compat)
+    # - transformers-js only → HF layout at out/
+    # - both → out/ort/ and out/transformers-js/
+    if want_ort and want_tjs:
+        ort_dir = out_dir / "ort"
+        tjs_dir = out_dir / "transformers-js"
+    elif want_ort:
+        ort_dir = out_dir
+        tjs_dir = None
+    else:
+        ort_dir = None
+        tjs_dir = out_dir
+
+    ort_onnx: Path | None = None
+    if want_ort and ort_dir is not None:
+        ort_onnx = write_ort_package(
+            card=card,
+            architecture=architecture,
+            module=module,
+            out_dir=ort_dir,
+            opset=opset,
+        )
+
+    if want_tjs and tjs_dir is not None:
+        write_transformers_js_package(
+            card=card,
+            architecture=architecture,
+            module=module,
+            out_dir=tjs_dir,
+            opset=opset,
+            ort_onnx_path=ort_onnx,
+        )
+
+    print(f"==> done → {out_dir}")
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Browser Train → ONNX converter")
+    parser = argparse.ArgumentParser(description="Browser Train → ONNX / Transformers.js converter")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    convert_p = sub.add_parser("convert", help="Convert inference safetensors to ONNX")
+    convert_p = sub.add_parser("convert", help="Convert inference safetensors to ONNX packages")
     convert_p.add_argument("checkpoint", type=Path, help="*.inference.safetensors (or training ckpt)")
     convert_p.add_argument("-o", "--out", type=Path, required=True, help="Output directory")
     convert_p.add_argument(
@@ -167,21 +256,23 @@ def main(argv: list[str] | None = None) -> None:
         help="Sidecar *.model.json from Browser Train download",
     )
     convert_p.add_argument("--opset", type=int, default=17)
+    convert_p.add_argument(
+        "--targets",
+        type=str,
+        default="both",
+        help="Comma list: ort, transformers-js, or both (default: both)",
+    )
 
     args = parser.parse_args(argv)
     if args.cmd == "convert":
-        model_json = args.model_json
-        if model_json is None:
-            guess = args.checkpoint.with_suffix("").with_suffix(".model.json")
-            # yearning-emu-0.inference.safetensors → yearning-emu-0.model.json
-            stem = args.checkpoint.name
-            if stem.endswith(".inference.safetensors"):
-                guess = args.checkpoint.parent / (stem[: -len(".inference.safetensors")] + ".model.json")
-            elif stem.endswith(".safetensors"):
-                guess = args.checkpoint.parent / (stem[: -len(".safetensors")] + ".model.json")
-            if guess.is_file():
-                model_json = guess
-        convert(args.checkpoint, args.out, model_json=model_json, opset=args.opset)
+        model_json = args.model_json or _guess_model_json(args.checkpoint)
+        convert(
+            args.checkpoint,
+            args.out,
+            model_json=model_json,
+            opset=args.opset,
+            targets=parse_targets(args.targets),
+        )
     else:
         parser.error(f"unknown command {args.cmd}")
 

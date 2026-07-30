@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Browser Train → Transformers.js</title>
+		<style>
+			:root {
+				font-family: ui-sans-serif, system-ui, sans-serif;
+				color: #171717;
+				background: #f5f5f5;
+			}
+			body {
+				max-width: 40rem;
+				margin: 2rem auto;
+				padding: 0 1rem;
+			}
+			h1 {
+				font-size: 1.25rem;
+				margin-bottom: 0.5rem;
+			}
+			.hint {
+				color: #525252;
+				font-size: 0.875rem;
+				line-height: 1.45;
+				margin-bottom: 1rem;
+			}
+			label {
+				display: block;
+				font-size: 0.75rem;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				color: #737373;
+				margin: 0.75rem 0 0.25rem;
+			}
+			input,
+			textarea {
+				width: 100%;
+				box-sizing: border-box;
+				padding: 0.5rem 0.6rem;
+				border: 1px solid #d4d4d4;
+				border-radius: 0.375rem;
+				font: inherit;
+			}
+			textarea {
+				min-height: 5rem;
+				resize: vertical;
+			}
+			.row {
+				display: flex;
+				gap: 0.5rem;
+				margin-top: 0.75rem;
+			}
+			button {
+				cursor: pointer;
+				border: none;
+				border-radius: 0.375rem;
+				padding: 0.5rem 0.9rem;
+				font: inherit;
+				font-weight: 600;
+				background: #6d28d9;
+				color: white;
+			}
+			button:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+			#status {
+				margin-top: 0.75rem;
+				font-size: 0.875rem;
+				color: #404040;
+			}
+			#status.error {
+				color: #b91c1c;
+			}
+			#output {
+				margin-top: 1rem;
+				padding: 0.75rem;
+				background: #171717;
+				color: #f5f5f5;
+				border-radius: 0.375rem;
+				font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+				font-size: 0.8rem;
+				white-space: pre-wrap;
+				min-height: 4rem;
+			}
+			code {
+				font-size: 0.8em;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Browser Train → Transformers.js</h1>
+		<p class="hint">
+			Decoder-only packages from
+			<code>export_inference convert</code> (<code>out/transformers-js/</code>). Copy that folder to
+			<code>public/models/browser-train/</code>. Encoder-decoder toys still use the ORT demo
+			(<code>browser-train-infer</code>).
+		</p>
+
+		<label for="modelId">Model id (under /models/)</label>
+		<input id="modelId" value="browser-train" />
+
+		<label for="prompt">Prompt</label>
+		<textarea id="prompt">Once upon a time</textarea>
+
+		<div class="row">
+			<button id="loadBtn" type="button">Load model</button>
+			<button id="runBtn" type="button" disabled>Generate</button>
+		</div>
+
+		<p id="status">Idle</p>
+		<div id="output"></div>
+
+		<script type="module" src="/src/main.ts"></script>
+	</body>
+</html>

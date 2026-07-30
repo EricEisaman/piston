@@ -15,11 +15,14 @@ DATASETS=tinyshakespeare,tinystories,fineweb VOCABS=char,1024 bash scripts/prepa
 
 See [scripts/DATA.md](../../scripts/DATA.md).
 
-## Inference export (ONNX)
+## Inference export (ONNX + Transformers.js)
 
-Train with an ONNX-exportable preset, download via the purple **ONNX** button, convert with
-[`scripts/export_inference`](../../scripts/export_inference/README.md), then run in
-[`examples/browser-train-infer`](../browser-train-infer/README.md).
+Train with an ONNX-exportable preset, download via the purple **ONNX** button, then convert
+with the **Docs** tab toolkit zip (`/browser-train-onnx-toolkit.zip` — no repo clone).
+One convert writes `ort/` (onnxruntime-web) and `transformers-js/` (decoder AutoModel).
+Developers: [`scripts/export_inference`](../../scripts/export_inference/README.md).
+Demos: [`browser-train-infer`](../browser-train-infer/README.md),
+[`browser-train-infer-tjs`](../browser-train-infer-tjs/README.md).
 
 Details: [INFERENCE.md](./INFERENCE.md).
 
