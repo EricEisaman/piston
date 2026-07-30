@@ -104,12 +104,36 @@ else
   rustup target add wasm32-unknown-unknown
 
   echo "==> Ensuring wasm-bindgen-cli matches ${WASM_BINDGEN_REV}"
-  if command -v wasm-bindgen >/dev/null 2>&1 && [[ "${FORCE_WASM_BINDGEN:-}" != "1" ]]; then
-    echo "==> wasm-bindgen already installed: $(wasm-bindgen --version) (set FORCE_WASM_BINDGEN=1 to reinstall)"
-  else
+  # Truncated crates.io trees (common when CI restores a bad .cargo/registry cache)
+  # show up as rustc E0583 missing modules inside registry/src/.../memchr-*/src.
+  purge_corrupt_cargo_registry_src() {
+    local reg_src="${CARGO_HOME}/registry/src"
+    [[ -d "$reg_src" ]] || return 0
+    local sample
+    sample="$(find "$reg_src" -path '*/memchr-*/src/lib.rs' 2>/dev/null | head -1 || true)"
+    if [[ -n "$sample" ]]; then
+      local memchr_src
+      memchr_src="$(dirname "$sample")"
+      if [[ ! -d "$memchr_src/arch" ]] || { [[ ! -f "$memchr_src/memmem.rs" ]] && [[ ! -d "$memchr_src/memmem" ]]; }; then
+        echo "==> Corrupt Cargo registry src detected (incomplete memchr); wiping $reg_src"
+        rm -rf "$reg_src"
+      fi
+    fi
+  }
+  install_wasm_bindgen_cli() {
+    purge_corrupt_cargo_registry_src
     cargo install -f wasm-bindgen-cli \
       --git "$WASM_BINDGEN_GIT" \
       --rev "$WASM_BINDGEN_REV"
+  }
+  if command -v wasm-bindgen >/dev/null 2>&1 && [[ "${FORCE_WASM_BINDGEN:-}" != "1" ]]; then
+    echo "==> wasm-bindgen already installed: $(wasm-bindgen --version) (set FORCE_WASM_BINDGEN=1 to reinstall)"
+  else
+    if ! install_wasm_bindgen_cli; then
+      echo "==> wasm-bindgen-cli install failed; wiping registry src and retrying once" >&2
+      rm -rf "${CARGO_HOME}/registry/src"
+      install_wasm_bindgen_cli
+    fi
   fi
   echo "==> wasm-bindgen: $(wasm-bindgen --version)"
 

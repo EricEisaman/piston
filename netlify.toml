@@ -14,16 +14,16 @@
 # Requires netlify-plugin-cache in package.json (root). In the Netlify UI, leave
 # "Package directory" empty / repo root — not packages/example-common.
 #
-# Do NOT cache all of `.cargo`: `.cargo/git/checkouts` (wasm-bindgen) can contain
-# LICENSE-* paths that confuse netlify-plugin-cache/cpy (EISDIR on save).
-# Registry + bin are enough; git deps re-fetch when needed. `target` is the big win.
+# Do NOT cache `.cargo/git` (EISDIR on LICENSE-* paths) or `.cargo/registry`
+# (netlify-plugin-cache/cpy can restore truncated crate trees → rustc E0583
+# "file not found for module `arch`" in memchr etc.). Cache `target` +
+# `.cargo/bin` (installed wasm-bindgen) only; crates.io re-downloads on miss.
 [[plugins]]
   package = "netlify-plugin-cache"
   [plugins.inputs]
   paths = [
     "target",
     ".cargo/bin",
-    ".cargo/registry",
     ".cache/browser-train-data",
     "examples/piston-train-toy/static/tokenizer",
     "examples/piston-train-toy/static/tokenized"
