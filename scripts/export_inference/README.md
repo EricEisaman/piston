@@ -79,6 +79,7 @@ In Browser Train, use:
 
 - **Toy: Sort Characters (ONNX exportable)** (`sort-characters-onnx`)
 - **TinyStories (ONNX exportable)** (`tinystories-onnx`)
+- **FineWeb GPT-2-sized (ONNX exportable)** (`fineweb-onnx`)
 - Or layer **ONNX export-friendly (transformer)** on any decoder / encoder-decoder run
 
 Unsupported (converter will refuse): RoPE, ALiBi, GQA, attention gating, sinks, softcap, RNN, encoder-only.

@@ -11,6 +11,7 @@ copy-paste snippets for both runtimes.
 1. Train with an exportable preset:
    - **Toy: Sort Characters (ONNX exportable)**
    - **TinyStories (ONNX exportable)**
+   - **FineWeb GPT-2-sized (ONNX exportable)**
    - or apply **ONNX export-friendly (transformer)** on top of your config
 2. While a run is active, click the purple **ONNX** download control (next to the normal checkpoint download).
 3. You get:

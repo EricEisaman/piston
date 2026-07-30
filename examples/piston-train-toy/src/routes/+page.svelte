@@ -35,6 +35,7 @@
 		DownloadIcon,
 		HistoryIcon,
 		Info,
+		Network,
 		PauseIcon,
 		PlayIcon,
 		RefreshCcwIcon,
@@ -45,6 +46,7 @@
 	import { onDestroy, onMount } from 'svelte';
 
 	import About from './tabs/About.svelte';
+	import Architectures from './tabs/Architectures.svelte';
 	import Docs from './tabs/Docs.svelte';
 	import Metrics from './tabs/Metrics.svelte';
 
@@ -327,6 +329,16 @@
 					false,
 					() => selectTab('docs')
 				)}
+				{@render tabButton(
+					'Architectures',
+					Network,
+					true,
+					activeTab.current === 'architectures' && shouldShowTabContent,
+					false,
+					false,
+					false,
+					() => selectTab('architectures')
+				)}
 				<div class="flex-1 border-b border-panel-border-base"></div>
 			</div>
 		</div>
@@ -452,6 +464,8 @@
 					<About />
 				{:else if activeTab.current === 'docs'}
 					<Docs />
+				{:else if activeTab.current === 'architectures'}
+					<Architectures />
 				{/if}
 			</div>
 		{/if}

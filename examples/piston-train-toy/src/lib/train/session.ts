@@ -295,7 +295,7 @@ export class TrainingSession {
 			dataState
 		};
 
-		const buffer = piston.save(tensors, extra);
+		const buffer = await piston.save(tensors, extra);
 		const modelJson = JSON.stringify(modelCard, null, 2);
 		return { buffer, modelJson };
 	}

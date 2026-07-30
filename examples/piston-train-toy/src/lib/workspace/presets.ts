@@ -130,6 +130,10 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 		label: 'TinyStories (ONNX exportable)',
 		layers: [{ preset: 'tinystories' }, { preset: 'onnx-export-friendly' }]
 	},
+	'fineweb-onnx': {
+		label: 'FineWeb GPT-2-sized (ONNX exportable)',
+		layers: [{ preset: 'fineweb' }, { preset: 'onnx-export-friendly' }]
+	},
 	'reverse-sequence': {
 		label: 'Toy: Reverse Sequence',
 		layers: [{ preset: 'transformer-toy-base' }, { data: { dataset: 'reverse' } }]
@@ -203,14 +207,15 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 	},
 
 	fineweb: {
-		label: 'FineWeb with ~GPT-2 sized model ⚠️',
+		label: 'FineWeb with ~GPT-2 sized model ⚠️ (use fineweb-onnx to export)',
 		layers: [
 			{
 				preset: 'fineweb',
 				data: {
 					dataset: 'fineweb',
 					natural: {
-						vocabSize: 32_768,
+						// Must match shipped static/tokenizer|tokenized/fineweb/* (max 8192).
+						vocabSize: 8192,
 						contextSize: 64
 					}
 				},

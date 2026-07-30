@@ -5,6 +5,7 @@ import {
 	trainingState,
 	waitForNextCheckpoint,
 	waitForNextInferenceExport,
+	waitUntilPaused,
 	workerPauseTraining,
 	workerReady,
 	workerRequestInferenceExport,
@@ -16,7 +17,7 @@ import {
 } from './workers.svelte';
 
 export const isMobile = $state({ current: false });
-export type AppTab = 'about' | 'metrics' | 'docs';
+export type AppTab = 'about' | 'metrics' | 'docs' | 'architectures';
 
 export const activeTab: { current: AppTab } = $state({
 	current: 'about'
@@ -262,16 +263,18 @@ export function toggleConfig() {
 }
 
 export async function saveModel() {
+	if (trainingState.current !== 'training' && trainingState.current !== 'paused') {
+		return;
+	}
+
 	// Set up waiter BEFORE causing a save so auto-save on pause satisfies it
 	const waiter = waitForNextCheckpoint();
 
 	if (trainingState.current === 'training') {
 		workerPauseTraining();
 		// paused handler will request a save
-	} else if (trainingState.current === 'paused') {
-		workerRequestSave();
 	} else {
-		return;
+		workerRequestSave();
 	}
 
 	const { runId, buffer } = await waiter;
@@ -303,22 +306,18 @@ const triggerBrowserDownload = (blob: Blob, filename: string) => {
  * for ONNX conversion. Requires an exportable config (see onnx-export-friendly preset).
  */
 export async function saveInferenceExport() {
+	if (trainingState.current !== 'training' && trainingState.current !== 'paused') {
+		return;
+	}
+
+	// Register before pause/export so the worker event cannot race past us.
 	const waiter = waitForNextInferenceExport();
 
 	if (trainingState.current === 'training') {
 		workerPauseTraining();
-		for (let i = 0; i < 100 && trainingState.current !== 'paused'; i++) {
-			await new Promise((r) => setTimeout(r, 20));
-		}
-		if (trainingState.current !== 'paused') {
-			throw new Error('Timed out waiting for training to pause before inference export');
-		}
-		workerRequestInferenceExport();
-	} else if (trainingState.current === 'paused') {
-		workerRequestInferenceExport();
-	} else {
-		return;
+		await waitUntilPaused();
 	}
+	workerRequestInferenceExport();
 
 	const { runId, buffer, modelJson } = await waiter;
 	triggerBrowserDownload(

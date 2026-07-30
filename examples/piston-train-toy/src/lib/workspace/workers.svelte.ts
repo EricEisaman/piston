@@ -36,15 +36,64 @@ let lastUAMemoryBytes: number | null = null;
 let screenWakeLock: WakeLockSentinel | null = null;
 
 type CheckpointPayload = { runId: string; buffer: Uint8Array<ArrayBufferLike> };
-const pendingCheckpointWaiters: Array<(p: CheckpointPayload) => void> = [];
+type CheckpointWaiter = {
+	resolve: (p: CheckpointPayload) => void;
+	reject: (error: Error) => void;
+};
+const pendingCheckpointWaiters: CheckpointWaiter[] = [];
 
 type InferenceExportPayload = {
 	runId: string;
 	buffer: Uint8Array<ArrayBufferLike>;
 	modelJson: string;
 };
-const pendingInferenceWaiters: Array<(p: InferenceExportPayload) => void> = [];
+type InferenceExportWaiter = {
+	resolve: (p: InferenceExportPayload) => void;
+	reject: (error: Error) => void;
+};
+const pendingInferenceWaiters: InferenceExportWaiter[] = [];
+
+type PauseWaiter = {
+	resolve: () => void;
+	reject: (error: Error) => void;
+};
+const pendingPauseWaiters: PauseWaiter[] = [];
+
 const pendingPeekResolvers = new SvelteMap<string, (cfg: Config) => void>();
+
+function fulfillPauseWaiters() {
+	for (const waiter of pendingPauseWaiters) {
+		waiter.resolve();
+	}
+	pendingPauseWaiters.length = 0;
+}
+
+function rejectPauseWaiters(error: Error) {
+	for (const waiter of pendingPauseWaiters) {
+		waiter.reject(error);
+	}
+	pendingPauseWaiters.length = 0;
+}
+
+function rejectCheckpointWaiters(error: Error) {
+	for (const waiter of pendingCheckpointWaiters) {
+		waiter.reject(error);
+	}
+	pendingCheckpointWaiters.length = 0;
+}
+
+function rejectInferenceWaiters(error: Error) {
+	for (const waiter of pendingInferenceWaiters) {
+		waiter.reject(error);
+	}
+	pendingInferenceWaiters.length = 0;
+}
+
+function rejectPendingTrainingWaiters(error: Error) {
+	rejectPauseWaiters(error);
+	rejectCheckpointWaiters(error);
+	rejectInferenceWaiters(error);
+}
 
 async function acquireScreenWakeLock() {
 	// Only attempt in browser/secure contexts that support it
@@ -177,6 +226,7 @@ export async function initializeWorker() {
 						console.log(`[Main] Training completed for run ${data.runId}`);
 						trainingState.current = 'stopped';
 						currentRun.current = null;
+						rejectPendingTrainingWaiters(new Error('Training completed before pause/export'));
 						void releaseScreenWakeLock();
 						break;
 
@@ -221,7 +271,7 @@ export async function initializeWorker() {
 
 							// Fulfill all waiters if present
 							for (const waiter of pendingCheckpointWaiters) {
-								void waiter({ runId, buffer: uint8array });
+								waiter.resolve({ runId, buffer: uint8array });
 							}
 							pendingCheckpointWaiters.length = 0;
 						}
@@ -234,7 +284,7 @@ export async function initializeWorker() {
 						const runId = (data.runId as string | undefined) ?? currentRun.current?.runId ?? 'model';
 						if (uint8array && modelJson) {
 							for (const waiter of pendingInferenceWaiters) {
-								void waiter({ runId, buffer: uint8array, modelJson });
+								waiter.resolve({ runId, buffer: uint8array, modelJson });
 							}
 							pendingInferenceWaiters.length = 0;
 						}
@@ -253,11 +303,17 @@ export async function initializeWorker() {
 						} else {
 							console.error(`[Main] Training error for run ${data.runId}:`, data.message);
 						}
+						rejectPendingTrainingWaiters(
+							new Error(
+								typeof data.message === 'string' ? data.message : 'Training error before export'
+							)
+						);
 						workerStopTraining();
 						break;
 					case 'paused':
 						console.log('[Main] Training paused');
 						trainingState.current = 'paused';
+						fulfillPauseWaiters();
 						// Request a save to persist checkpoint; session will be stored alongside when checkpoint arrives
 						if (currentRun.current?.runId) {
 							workerRequestSave();
@@ -315,14 +371,30 @@ export function workerRequestInferenceExport() {
 }
 
 export function waitForNextCheckpoint(): Promise<CheckpointPayload> {
-	return new Promise((resolve) => {
-		pendingCheckpointWaiters.push(resolve);
+	return new Promise((resolve, reject) => {
+		pendingCheckpointWaiters.push({ resolve, reject });
 	});
 }
 
 export function waitForNextInferenceExport(): Promise<InferenceExportPayload> {
-	return new Promise((resolve) => {
-		pendingInferenceWaiters.push(resolve);
+	return new Promise((resolve, reject) => {
+		pendingInferenceWaiters.push({ resolve, reject });
+	});
+}
+
+/**
+ * Resolves when the worker reports `paused`. Event-driven — no timeout/poll.
+ * Rejects if training is already stopped or transitions to stopped while waiting.
+ */
+export function waitUntilPaused(): Promise<void> {
+	if (trainingState.current === 'paused') {
+		return Promise.resolve();
+	}
+	if (trainingState.current === 'stopped') {
+		return Promise.reject(new Error('Training stopped before pause'));
+	}
+	return new Promise((resolve, reject) => {
+		pendingPauseWaiters.push({ resolve, reject });
 	});
 }
 
@@ -340,6 +412,8 @@ export function peekCheckpointConfig(buffer: Uint8Array<ArrayBufferLike>): Promi
 export async function workerStopTraining() {
 	if (!trainWorker || trainingState.current === 'stopped') return;
 	void releaseScreenWakeLock();
+
+	rejectPendingTrainingWaiters(new Error('Training stopped before pause/export'));
 
 	// For now, we'll just terminate and recreate the worker
 	// In a more sophisticated implementation, we'd send a stop message

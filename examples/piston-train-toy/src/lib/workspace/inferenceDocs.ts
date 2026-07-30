@@ -267,9 +267,10 @@ export const INFERENCE_PRESET_DOCS: InferencePresetDoc[] = [
 		presetId: 'fineweb',
 		architecture: 'decoder',
 		support: 'exportable',
-		howToSelect: 'Presets → FineWeb. Large model — export works the same, but convert/run is heavier.',
+		howToSelect:
+			'Presets → FineWeb. Prefer FineWeb GPT-2-sized (ONNX) for purple download. Uses BPE vocab 8192 (shipped shards).',
 		exportChecklist: [
-			'Apply onnx-export-friendly if settings block purple ONNX download',
+			'Prefer fineweb-onnx or apply onnx-export-friendly before purple ONNX download',
 			'Expect large .inference.safetensors / ONNX files',
 			'Use a short prompt when smoke-testing'
 		],
@@ -277,7 +278,23 @@ export const INFERENCE_PRESET_DOCS: InferencePresetDoc[] = [
 		expectedOutput: 'Open-ended continuation from the FineWeb-trained decoder.',
 		ortSnippet: ortComplete('The history of computing', 32),
 		transformersJsSnippet: tjsGenerate('The history of computing', 32),
-		notes: 'FineWeb runs are large; keep prompts short when smoke-testing in the browser.'
+		notes: 'FineWeb is VRAM-heavy. Vocab is 8192 to match prepared data. For a clean export path use fineweb-onnx.'
+	},
+	{
+		presetId: 'fineweb-onnx',
+		architecture: 'decoder',
+		support: 'exportable',
+		howToSelect: 'Presets → FineWeb GPT-2-sized (ONNX exportable).',
+		exportChecklist: [
+			'Already ONNX-friendly (learned PE, no GQA / gating / qkNorm)',
+			'~GPT-2-small shape: 12 layers × 12 heads × headDim 64 → emb 768; vocab 8192',
+			'Purple ONNX download → convert → ORT complete() or Transformers.js generate()'
+		],
+		sampleInput: 'The history of computing',
+		expectedOutput: 'Open-ended continuation from the FineWeb-trained decoder.',
+		ortSnippet: ortComplete('The history of computing', 32),
+		transformersJsSnippet: tjsGenerate('The history of computing', 32),
+		notes: 'Still large for many machines; keep prompts short when smoke-testing. NL HF tokenizer.json may need copying into the Transformers.js folder (see tokenizer.note.json).'
 	},
 	{
 		presetId: 'dyck-encoder',

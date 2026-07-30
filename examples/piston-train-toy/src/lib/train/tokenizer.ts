@@ -89,7 +89,31 @@ type PostProcessorOptions = { addSpecialTokens?: boolean };
 type PostProcessorResult = { tokens: string[]; tokenTypeIds?: number[] };
 type PostProcessorSequenceConfig = WithType<'Sequence'> & { processors: PostProcessorConfig[] };
 type ByteLevelPostProcessorConfig = WithType<'ByteLevel'>;
-type PostProcessorConfig = PostProcessorSequenceConfig | ByteLevelPostProcessorConfig;
+/** HuggingFace tokenizers TemplateProcessing piece (after camelCaseKeysDeep). */
+type TemplateProcessingPiece =
+	| {
+			SpecialToken?: { id: string; typeId?: number; type_id?: number };
+			specialToken?: { id: string; typeId?: number; type_id?: number };
+	  }
+	| {
+			Sequence?: { id: string; typeId?: number; type_id?: number };
+			sequence?: { id: string; typeId?: number; type_id?: number };
+	  };
+type TemplateSpecialTokenEntry = {
+	id: string;
+	ids: number[];
+	tokens: string[];
+};
+type TemplateProcessingConfig = WithType<'TemplateProcessing'> & {
+	single: TemplateProcessingPiece[];
+	pair?: TemplateProcessingPiece[];
+	specialTokens?: Record<string, TemplateSpecialTokenEntry>;
+	special_tokens?: Record<string, TemplateSpecialTokenEntry>;
+};
+type PostProcessorConfig =
+	| PostProcessorSequenceConfig
+	| ByteLevelPostProcessorConfig
+	| TemplateProcessingConfig;
 
 // Decoder configs
 type ByteLevelDecoderConfig = WithType<'ByteLevel'> & { trimOffsets?: boolean };
@@ -894,8 +918,12 @@ abstract class PostProcessor extends Callable<PostProcessorArgs, PostProcessorRe
 				return new ByteLevelPostProcessor(config);
 			case 'Sequence':
 				return new PostProcessorSequence(config);
+			case 'TemplateProcessing':
+				return new TemplateProcessingPostProcessor(config);
 			default:
-				throw new Error('Unknown PostProcessor type');
+				throw new Error(
+					`Unknown PostProcessor type: ${String((config as { type?: string }).type)}`
+				);
 		}
 	}
 
@@ -955,6 +983,61 @@ class PostProcessorSequence extends PostProcessor {
 			}
 		}
 		return { tokens, tokenTypeIds: tokenTypeIds };
+	}
+}
+
+/**
+ * HuggingFace TemplateProcessing — used by Browser Train BPE tokenizers
+ * (tinystories / fineweb / tinyshakespeare) which wrap sequences as
+ * `<bos> $A <eos>`.
+ */
+class TemplateProcessingPostProcessor extends PostProcessor {
+	declare config: TemplateProcessingConfig;
+
+	postProcess(
+		tokens: string[],
+		tokensPair: string[] | null = null,
+		options: PostProcessorOptions = {}
+	): PostProcessorResult {
+		const addSpecialTokens = options.addSpecialTokens !== false;
+		const template =
+			tokensPair != null && (this.config.pair?.length ?? 0) > 0
+				? (this.config.pair as TemplateProcessingPiece[])
+				: this.config.single;
+		const specialMap = this.config.specialTokens ?? this.config.special_tokens ?? {};
+
+		const outTokens: string[] = [];
+		const outTypeIds: number[] = [];
+
+		for (const piece of template) {
+			const special = piece.SpecialToken ?? piece.specialToken;
+			const sequence = piece.Sequence ?? piece.sequence;
+			if (special) {
+				if (!addSpecialTokens) {
+					continue;
+				}
+				const entry = specialMap[special.id];
+				const typeId = special.typeId ?? special.type_id ?? 0;
+				const specialToks = entry?.tokens?.length ? entry.tokens : [special.id];
+				for (const t of specialToks) {
+					outTokens.push(t);
+					outTypeIds.push(typeId);
+				}
+				continue;
+			}
+			if (sequence) {
+				const typeId = sequence.typeId ?? sequence.type_id ?? 0;
+				const seqId = String(sequence.id).toUpperCase();
+				const source =
+					seqId === 'B' || seqId === '1' ? (tokensPair ?? []) : tokens;
+				for (const t of source) {
+					outTokens.push(t);
+					outTypeIds.push(typeId);
+				}
+			}
+		}
+
+		return { tokens: outTokens, tokenTypeIds: outTypeIds };
 	}
 }
 
