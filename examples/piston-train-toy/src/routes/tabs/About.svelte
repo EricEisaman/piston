@@ -9,6 +9,7 @@
 		hasWebGPU,
 		isVisualizerEditorMinimized,
 		openConfigAndScrollToControl,
+		selectTab,
 		startTraining,
 		switchToMetrics
 	} from '$lib/workspace/ui.svelte';
@@ -134,6 +135,17 @@
 
 				<p class="font-medium mb-4 mt-4 text-lg">
 					Train a language model in your browser with WebGPU
+				</p>
+
+				<p class="mb-4 text-sm text-neutral-700">
+					Inference export (purple ONNX download → convert → browser ORT) →
+					<button
+						type="button"
+						class="text-purple-700 underline decoration-dotted underline-offset-2 font-medium cursor-pointer"
+						onclick={() => selectTab('docs')}
+					>
+						Docs tab
+					</button>
 				</p>
 
 				<div class="mb-4 -mx-2">

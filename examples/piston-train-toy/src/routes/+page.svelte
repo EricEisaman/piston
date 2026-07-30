@@ -30,6 +30,7 @@
 		workerReady
 	} from '$lib/workspace/workers.svelte';
 	import {
+		BookOpen,
 		ChartLine,
 		DownloadIcon,
 		HistoryIcon,
@@ -44,6 +45,7 @@
 	import { onDestroy, onMount } from 'svelte';
 
 	import About from './tabs/About.svelte';
+	import Docs from './tabs/Docs.svelte';
 	import Metrics from './tabs/Metrics.svelte';
 
 	// Mount state to prevent flash
@@ -315,6 +317,16 @@
 					trainingState.current === 'training',
 					() => selectTab('metrics')
 				)}
+				{@render tabButton(
+					'Docs',
+					BookOpen,
+					true,
+					activeTab.current === 'docs' && shouldShowTabContent,
+					false,
+					false,
+					false,
+					() => selectTab('docs')
+				)}
 				<div class="flex-1 border-b border-panel-border-base"></div>
 			</div>
 		</div>
@@ -438,6 +450,8 @@
 					<Metrics />
 				{:else if activeTab.current === 'about'}
 					<About />
+				{:else if activeTab.current === 'docs'}
+					<Docs />
 				{/if}
 			</div>
 		{/if}

@@ -16,7 +16,9 @@ import {
 } from './workers.svelte';
 
 export const isMobile = $state({ current: false });
-export const activeTab: { current: 'about' | 'metrics' } = $state({
+export type AppTab = 'about' | 'metrics' | 'docs';
+
+export const activeTab: { current: AppTab } = $state({
 	current: 'about'
 });
 export const isVisualizerEditorMinimized = $state({ current: true });
@@ -116,7 +118,7 @@ export const setupUI = () => {
 };
 
 // Function to handle tab selection with mobile behavior
-export function selectTab(tabName: 'about' | 'metrics') {
+export function selectTab(tabName: AppTab) {
 	activeTab.current = tabName;
 	if (isMobile.current && configOpen.current) {
 		configOpen.current = false;
