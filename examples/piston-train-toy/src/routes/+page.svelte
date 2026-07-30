@@ -11,6 +11,7 @@
 		hasWebGPU,
 		isMobile,
 		restartTraining,
+		saveInferenceExport,
 		saveModel,
 		selectTab,
 		setupUI,
@@ -328,12 +329,26 @@
 				<div class="relative flex flex-col h-full">
 					{#if trainingState.current !== 'stopped'}
 						<div
-							class="p-1 border-b border-panel-border-base shrink-0 flex items-center justify-between"
+							class="p-1 border-b border-panel-border-base shrink-0 flex items-center justify-between gap-1"
 						>
-							<span class="font-medium">{currentRun.current?.runId}</span>
-							<button class="flex items-center gap-1 cursor-pointer" onclick={saveModel}>
-								<DownloadIcon class="w-3.5 h-3.5 shrink-0" strokeWidth={iconStrokeWidth} />
-							</button>
+							<span class="font-medium truncate">{currentRun.current?.runId}</span>
+							<div class="flex items-center gap-1 shrink-0">
+								<button
+									class="flex items-center gap-1 cursor-pointer"
+									title="Download training checkpoint (resume)"
+									onclick={saveModel}
+								>
+									<DownloadIcon class="w-3.5 h-3.5 shrink-0" strokeWidth={iconStrokeWidth} />
+								</button>
+								<button
+									class="flex items-center gap-1 cursor-pointer text-purple-700"
+									title="Download for ONNX inference export"
+									onclick={() => void saveInferenceExport()}
+								>
+									<span class="text-[10px] font-mono uppercase tracking-wide">ONNX</span>
+									<DownloadIcon class="w-3.5 h-3.5 shrink-0" strokeWidth={iconStrokeWidth} />
+								</button>
+							</div>
 						</div>
 					{/if}
 					<div class="p-1 border-b border-panel-border-base shrink-0">

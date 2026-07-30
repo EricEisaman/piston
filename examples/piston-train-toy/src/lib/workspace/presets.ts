@@ -85,6 +85,51 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 		label: 'Toy: Sort Characters',
 		layers: [{ preset: 'transformer-toy-base' }, { data: { dataset: 'sort' } }]
 	},
+	'onnx-export-friendly': {
+		label: 'ONNX export-friendly (transformer)',
+		layers: [
+			{
+				model: {
+					family: 'transformer',
+					transformer: {
+						attention: {
+							groupedQueryAttention: { present: false },
+							gating: { present: false },
+							sinks: { present: false }
+						},
+						positionalEncoding: {
+							present: true,
+							type: 'learned'
+						},
+						normalization: {
+							qkNorm: { present: false },
+							softcap: {
+								attention: { present: false },
+								logits: { present: false }
+							}
+						},
+						mlp: {
+							present: true,
+							variant: 'standard',
+							activation: 'gelu'
+						}
+					}
+				}
+			}
+		]
+	},
+	'sort-characters-onnx': {
+		label: 'Toy: Sort Characters (ONNX exportable)',
+		layers: [
+			{ preset: 'transformer-toy-base' },
+			{ preset: 'onnx-export-friendly' },
+			{ data: { dataset: 'sort' } }
+		]
+	},
+	'tinystories-onnx': {
+		label: 'TinyStories (ONNX exportable)',
+		layers: [{ preset: 'tinystories' }, { preset: 'onnx-export-friendly' }]
+	},
 	'reverse-sequence': {
 		label: 'Toy: Reverse Sequence',
 		layers: [{ preset: 'transformer-toy-base' }, { data: { dataset: 'reverse' } }]

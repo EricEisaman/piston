@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Browser Train Infer</title>
+		<style>
+			:root {
+				color-scheme: light;
+				--bg: #f4f0ea;
+				--ink: #1c1917;
+				--accent: #6b21a8;
+				--panel: #fffdf8;
+				--line: #d6d3d1;
+				font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background:
+					radial-gradient(circle at top left, #ede9fe 0%, transparent 40%),
+					linear-gradient(180deg, var(--bg), #e7e5e4);
+				color: var(--ink);
+			}
+			main {
+				max-width: 42rem;
+				margin: 0 auto;
+				padding: 2.5rem 1.25rem 4rem;
+			}
+			h1 {
+				font-family: 'IBM Plex Serif', Georgia, serif;
+				font-weight: 600;
+				font-size: 2rem;
+				margin: 0 0 0.35rem;
+				letter-spacing: -0.02em;
+			}
+			.lede {
+				margin: 0 0 1.75rem;
+				color: #57534e;
+				line-height: 1.5;
+			}
+			label {
+				display: block;
+				font-size: 0.8rem;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				margin-bottom: 0.4rem;
+				color: #78716c;
+			}
+			input,
+			textarea,
+			button,
+			select {
+				font: inherit;
+			}
+			input,
+			textarea,
+			select {
+				width: 100%;
+				border: 1px solid var(--line);
+				background: var(--panel);
+				padding: 0.65rem 0.75rem;
+				border-radius: 0.35rem;
+			}
+			textarea {
+				min-height: 5.5rem;
+				resize: vertical;
+			}
+			.row {
+				display: grid;
+				gap: 0.85rem;
+				margin-bottom: 1rem;
+			}
+			.actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.6rem;
+				margin: 1rem 0 1.25rem;
+			}
+			button {
+				border: 0;
+				background: var(--accent);
+				color: white;
+				padding: 0.65rem 1rem;
+				border-radius: 0.35rem;
+				cursor: pointer;
+			}
+			button.secondary {
+				background: #44403c;
+			}
+			button:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+			.out {
+				white-space: pre-wrap;
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: 0.35rem;
+				padding: 0.9rem 1rem;
+				min-height: 4rem;
+				line-height: 1.45;
+			}
+			.status {
+				font-size: 0.85rem;
+				color: #57534e;
+				margin-bottom: 1rem;
+			}
+			.error {
+				color: #b91c1c;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<h1>Browser Train Infer</h1>
+			<p class="lede">
+				Load an ONNX package from
+				<code>scripts/export_inference</code>
+				and run decoder or encoder-decoder inference in the browser.
+			</p>
+			<div class="row">
+				<div>
+					<label for="modelUrl">Model directory URL</label>
+					<input id="modelUrl" value="/model/" />
+				</div>
+				<div>
+					<label for="mode">Mode</label>
+					<select id="mode">
+						<option value="auto">Auto (from manifest)</option>
+						<option value="decoder">Decoder complete</option>
+						<option value="encdec">Encoder-decoder</option>
+					</select>
+				</div>
+				<div>
+					<label for="prompt">Prompt / source</label>
+					<textarea id="prompt" placeholder="e.g. cba: for sort-characters"></textarea>
+				</div>
+			</div>
+			<div class="actions">
+				<button id="loadBtn" type="button">Load model</button>
+				<button id="runBtn" type="button" class="secondary" disabled>Run</button>
+			</div>
+			<p id="status" class="status">Drop converter output into <code>public/model/</code>.</p>
+			<label for="output">Output</label>
+			<div id="output" class="out"></div>
+		</main>
+		<script type="module" src="/src/main.ts"></script>
+	</body>
+</html>

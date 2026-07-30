@@ -68,6 +68,9 @@ export interface CheckpointExtra {
 	dataState?: CheckpointDataState;
 	// Optional wall-clock training start time in ms to persist across restarts
 	startTimeMs?: number;
+	/** Present on inference-only packages */
+	format?: string;
+	model?: import('./inferenceExport').InferenceModelCard;
 }
 
 /**
@@ -77,7 +80,6 @@ export interface CheckpointExtra {
  *   under keys prefixed with `optimizer/state/...`
  * - Extra contains { config, optimizer, numSteps }
  */
-
 export function buildCheckpoint(
 	model: piston.Module,
 	optimizer: Optimizer,
@@ -154,8 +156,7 @@ export interface SplitLoadedStateResult {
 }
 
 /**
- * Given loaded state from piston.load, split out model state from lifted optimizer tensors
- * and rehydrate optimizer and scheduler states from extras.
+ * Split loaded safetensors for training resume. Requires optimizer state.
  */
 export function splitLoadedState(loaded: {
 	state: Record<string, Tensor>;
@@ -183,8 +184,8 @@ export function splitLoadedState(loaded: {
 	const { extra } = loaded;
 
 	if (extra) {
-		config = extra.config;
-		numSteps = extra.numSteps;
+		config = extra.config ?? extra.model?.config ?? null;
+		numSteps = extra.numSteps ?? extra.model?.numSteps ?? 0;
 		if (extra.optimizer) {
 			const rehydratedState = rehydrateTensorsInObject<Record<number, OptimizerParamState>>(
 				extra.optimizer.state,
@@ -221,4 +222,35 @@ export function splitLoadedState(loaded: {
 	// Some runs don't use a scheduler, so we don't validate that it's present
 
 	return { modelState, optimizerState, schedulerState, numSteps, config, dataState, startTimeMs };
+}
+
+/**
+ * Split model weights from a training or inference checkpoint without requiring optimizer state.
+ */
+export function splitLoadedStateLenient(loaded: {
+	state: Record<string, Tensor>;
+	extra?: CheckpointExtra;
+}): {
+	modelState: Record<string, Tensor>;
+	config: Config | null;
+	numSteps: number;
+	dataState?: CheckpointDataState;
+} {
+	const prefix = 'optimizer.state';
+	const modelState: Record<string, Tensor> = {};
+	for (const [key, t] of Object.entries(loaded.state)) {
+		if (!key.startsWith(prefix)) {
+			modelState[key] = t;
+		}
+	}
+
+	const extra = loaded.extra;
+	const config = extra?.config ?? extra?.model?.config ?? null;
+	const numSteps = extra?.numSteps ?? extra?.model?.numSteps ?? 0;
+	return {
+		modelState,
+		config,
+		numSteps,
+		dataState: extra?.dataState
+	};
 }

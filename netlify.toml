@@ -11,6 +11,8 @@
   # Optional: SKIP_WASM=1 / FORCE_WASM=1 (see scripts/build-piston-train-toy.sh)
 
 # Persist Rust/WASM + dataset artifacts across deploys so fingerprint skip can hit.
+# Requires netlify-plugin-cache in package.json (root). In the Netlify UI, leave
+# "Package directory" empty / repo root — not packages/example-common.
 [[plugins]]
   package = "netlify-plugin-cache"
   [plugins.inputs]

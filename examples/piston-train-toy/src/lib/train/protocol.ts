@@ -17,6 +17,7 @@ export type WorkerCommand =
 	| { type: 'resume' }
 	| { type: 'step' }
 	| { type: 'save' }
+	| { type: 'save.inference' }
 	| { type: 'stop' }
 	| {
 			type: 'visualizer.updateScript';
@@ -70,6 +71,11 @@ export type RunWorkerEventWithoutRunId =
 			queries: unknown[];
 	  }
 	| { type: 'checkpoint'; buffer: Uint8Array<ArrayBufferLike> }
+	| {
+			type: 'checkpoint.inference';
+			buffer: Uint8Array<ArrayBufferLike>;
+			modelJson: string;
+	  }
 	| { type: 'restart'; buffer: Uint8Array<ArrayBufferLike> }
 	| { type: 'paused' }
 	| { type: 'resumed' }

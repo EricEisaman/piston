@@ -37,6 +37,13 @@ let screenWakeLock: WakeLockSentinel | null = null;
 
 type CheckpointPayload = { runId: string; buffer: Uint8Array<ArrayBufferLike> };
 const pendingCheckpointWaiters: Array<(p: CheckpointPayload) => void> = [];
+
+type InferenceExportPayload = {
+	runId: string;
+	buffer: Uint8Array<ArrayBufferLike>;
+	modelJson: string;
+};
+const pendingInferenceWaiters: Array<(p: InferenceExportPayload) => void> = [];
 const pendingPeekResolvers = new SvelteMap<string, (cfg: Config) => void>();
 
 async function acquireScreenWakeLock() {
@@ -221,6 +228,18 @@ export async function initializeWorker() {
 
 						break;
 					}
+					case 'checkpoint.inference': {
+						const uint8array = data.buffer as Uint8Array<ArrayBufferLike> | undefined;
+						const modelJson = data.modelJson as string | undefined;
+						const runId = (data.runId as string | undefined) ?? currentRun.current?.runId ?? 'model';
+						if (uint8array && modelJson) {
+							for (const waiter of pendingInferenceWaiters) {
+								void waiter({ runId, buffer: uint8array, modelJson });
+							}
+							pendingInferenceWaiters.length = 0;
+						}
+						break;
+					}
 					case 'error':
 						if (data.name === 'VRAMLimitExceededError') {
 							console.error(`[Main] VRAM limit exceeded for run ${data.runId}:`, data.message);
@@ -288,9 +307,22 @@ export function workerRequestSave() {
 	trainWorker.postMessage({ type: 'save' });
 }
 
+export function workerRequestInferenceExport() {
+	if (!trainWorker) {
+		throw new Error('Worker not initialized');
+	}
+	trainWorker.postMessage({ type: 'save.inference' });
+}
+
 export function waitForNextCheckpoint(): Promise<CheckpointPayload> {
 	return new Promise((resolve) => {
 		pendingCheckpointWaiters.push(resolve);
+	});
+}
+
+export function waitForNextInferenceExport(): Promise<InferenceExportPayload> {
+	return new Promise((resolve) => {
+		pendingInferenceWaiters.push(resolve);
 	});
 }
 

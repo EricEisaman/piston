@@ -44,6 +44,14 @@ import {
 	splitLoadedState
 } from './utils/checkpoint';
 import {
+	assertInferenceExportable,
+	buildExportProfile,
+	INFERENCE_FORMAT,
+	type InferenceModelCard,
+	type InferenceTokenizerSpec,
+	resolveInferenceArchitecture
+} from './utils/inferenceExport';
+import {
 	calculateBlockSize,
 	calculateParameterSum,
 	calculateVocabSize,
@@ -175,6 +183,121 @@ export class TrainingSession {
 		} catch (e) {
 			this.post({ type: 'error', message: String(e) });
 		}
+	}
+
+	async saveInference() {
+		try {
+			if (!this.paused) {
+				throw new Error('Inference export during training is not supported — pause first');
+			}
+			if (!this.model) {
+				throw new Error('No model available to export');
+			}
+			assertInferenceExportable(this.config);
+			await piston.gpu.markStep();
+			const { buffer, modelJson } = await this.buildInferencePackage();
+			this.post({ type: 'checkpoint.inference', buffer, modelJson });
+		} catch (e) {
+			this.post({
+				type: 'error',
+				message: e instanceof Error ? e.message : String(e)
+			});
+		}
+	}
+
+	private buildTokenizerSpec(): InferenceTokenizerSpec {
+		if (this.trainDataset instanceof ToyDataset) {
+			const ids = this.trainDataset.tokenizer.ids;
+			const idToToken: Record<string, string> = {};
+			for (const [id, token] of Object.entries(ids)) {
+				idToToken[String(id)] = token;
+			}
+			return {
+				kind: 'char',
+				idToToken,
+				bosId: this.trainDataset.bosId,
+				eosId: this.trainDataset.eosId,
+				padId: null
+			};
+		}
+		if (this.trainDataset instanceof NaturalLanguageDataset) {
+			return {
+				kind: 'hf',
+				vocabSize: calculateVocabSize(this.config, this.trainDataset),
+				tokenizerFile: 'tokenizer.json'
+			};
+		}
+		return { kind: 'hf', vocabSize: 0 };
+	}
+
+	private async buildInferencePackage(): Promise<{
+		buffer: Uint8Array<ArrayBufferLike>;
+		modelJson: string;
+	}> {
+		const configSnapshot = this.config
+			? (JSON.parse(JSON.stringify(this.config)) as Config)
+			: null;
+		if (!configSnapshot) {
+			throw new Error('No config available for inference export');
+		}
+
+		const dataState: CheckpointDataState = {
+			blockSize: this.blockSize
+		};
+		if (this.trainDataset instanceof NaturalLanguageDataset) {
+			dataState.natural = this.trainDataset.exportState();
+		} else if (this.trainDataset instanceof ToyDataset) {
+			dataState.toy = {
+				cursor: this.trainDataset.cursor,
+				baseSeed: this.trainDataset.baseSeed,
+				datasetName: this.config.data.dataset
+			};
+		}
+
+		const vocabSize = calculateVocabSize(this.config, this.trainDataset);
+		const architecture = resolveInferenceArchitecture(this.config);
+		const profile = buildExportProfile(this.config);
+		const embeddingSize =
+			this.config.model.transformer.headDim *
+			(profile.gqa
+				? profile.nKvHeads *
+					this.config.model.transformer.attention.groupedQueryAttention.queryHeadsPerKeyValueHead
+				: profile.nKvHeads);
+
+		const modelCard: InferenceModelCard = {
+			architecture,
+			blockSize: this.blockSize,
+			config: configSnapshot,
+			dataset: this.config.data.dataset,
+			embeddingSize,
+			exportProfile: profile,
+			format: INFERENCE_FORMAT,
+			layers: {
+				decoder:
+					architecture === 'encoder-decoder'
+						? this.config.model.encoderDecoder.decoderLayers
+						: this.config.model.layers,
+				encoder:
+					architecture === 'encoder-decoder' ? this.config.model.encoderDecoder.encoderLayers : 0
+			},
+			numSteps: this.stepCount,
+			tokenizer: this.buildTokenizerSpec(),
+			vocabSize
+		};
+
+		const tensors = this.model.stateDict();
+		const extra = {
+			format: INFERENCE_FORMAT,
+			model: modelCard,
+			config: configSnapshot,
+			optimizer: null,
+			numSteps: this.stepCount,
+			dataState
+		};
+
+		const buffer = piston.save(tensors, extra);
+		const modelJson = JSON.stringify(modelCard, null, 2);
+		return { buffer, modelJson };
 	}
 
 	setVisualizationScript(example: string, script: string | null) {

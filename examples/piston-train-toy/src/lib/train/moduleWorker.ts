@@ -6,7 +6,7 @@ import * as piston from '@piston-ml/piston-web';
 import type { WorkerCommand, WorkerEvent } from './protocol';
 
 import { TrainingSession } from './session';
-import { type CheckpointExtra, splitLoadedState } from './utils/checkpoint';
+import { type CheckpointExtra, splitLoadedState, splitLoadedStateLenient } from './utils/checkpoint';
 import { inspectModel } from './utils/model';
 
 let session: TrainingSession | undefined;
@@ -175,6 +175,10 @@ self.addEventListener('message', async (event) => {
 			session?.save();
 			break;
 		}
+		case 'save.inference': {
+			session?.saveInference();
+			break;
+		}
 		case 'pause': {
 			session?.pause();
 			break;
@@ -294,11 +298,20 @@ self.addEventListener('message', async (event) => {
 				requestId: string;
 				buffer: Uint8Array<ArrayBufferLike>;
 			};
-			const loaded = piston.load(buffer, piston.gpu);
-			const split = splitLoadedState(
-				loaded as { state: Record<string, Tensor>; extra?: CheckpointExtra }
-			);
-			self.postMessage({ type: 'checkpoint.config', requestId, config: split.config });
+			const loaded = piston.load(buffer, piston.gpu) as {
+				state: Record<string, Tensor>;
+				extra?: CheckpointExtra;
+			};
+			try {
+				const split = splitLoadedState(loaded);
+				self.postMessage({ type: 'checkpoint.config', requestId, config: split.config });
+			} catch {
+				const lenient = splitLoadedStateLenient(loaded);
+				if (!lenient.config) {
+					throw new Error('No config found in checkpoint');
+				}
+				self.postMessage({ type: 'checkpoint.config', requestId, config: lenient.config });
+			}
 			break;
 		}
 		case 'inspectModel':

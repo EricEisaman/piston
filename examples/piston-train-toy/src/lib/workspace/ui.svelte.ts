@@ -4,8 +4,10 @@ import { newRun, restoreRun, type RunData } from './runs.svelte';
 import {
 	trainingState,
 	waitForNextCheckpoint,
+	waitForNextInferenceExport,
 	workerPauseTraining,
 	workerReady,
+	workerRequestInferenceExport,
 	workerRequestSave,
 	workerResumeTraining,
 	workerStartTraining,
@@ -281,6 +283,50 @@ export async function saveModel() {
 	document.body.appendChild(a);
 	a.click();
 	document.body.removeChild(a);
+}
+
+const triggerBrowserDownload = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = filename;
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
+	URL.revokeObjectURL(url);
+};
+
+/**
+ * Download an inference-trimmed package (weights-only safetensors + model.json)
+ * for ONNX conversion. Requires an exportable config (see onnx-export-friendly preset).
+ */
+export async function saveInferenceExport() {
+	const waiter = waitForNextInferenceExport();
+
+	if (trainingState.current === 'training') {
+		workerPauseTraining();
+		for (let i = 0; i < 100 && trainingState.current !== 'paused'; i++) {
+			await new Promise((r) => setTimeout(r, 20));
+		}
+		if (trainingState.current !== 'paused') {
+			throw new Error('Timed out waiting for training to pause before inference export');
+		}
+		workerRequestInferenceExport();
+	} else if (trainingState.current === 'paused') {
+		workerRequestInferenceExport();
+	} else {
+		return;
+	}
+
+	const { runId, buffer, modelJson } = await waiter;
+	triggerBrowserDownload(
+		new Blob([buffer.buffer as ArrayBuffer], { type: 'application/octet-stream' }),
+		`${runId}.inference.safetensors`
+	);
+	triggerBrowserDownload(
+		new Blob([modelJson], { type: 'application/json' }),
+		`${runId}.model.json`
+	);
 }
 
 // Function to start training

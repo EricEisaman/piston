@@ -15,4 +15,12 @@ DATASETS=tinyshakespeare,tinystories,fineweb VOCABS=char,1024 bash scripts/prepa
 
 See [scripts/DATA.md](../../scripts/DATA.md).
 
+## Inference export (ONNX)
+
+Train with an ONNX-exportable preset, download via the purple **ONNX** button, convert with
+[`scripts/export_inference`](../../scripts/export_inference/README.md), then run in
+[`examples/browser-train-infer`](../browser-train-infer/README.md).
+
+Details: [INFERENCE.md](./INFERENCE.md).
+
 Thanks to Vin Howe for getting this project off the ground.

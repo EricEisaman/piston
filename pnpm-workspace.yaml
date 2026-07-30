@@ -1,5 +1,6 @@
 packages:
   - "examples/piston-train-toy"
+  - "examples/browser-train-infer"
   - "packages/web"
   - "packages/example-common"
 onlyBuiltDependencies:
