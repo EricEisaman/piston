@@ -1,5 +1,7 @@
 # Browser Train — free Render web service serving the static SvelteKit build.
 # Full Rust+WASM+pnpm build is heavy; free tier may need DATASETS narrowed.
+# Build script auto-skips WASM when target/pkg fingerprint matches (persistent
+# disk / SKIP_WASM=1). Use FORCE_WASM=1 to rebuild WASM unconditionally.
 services:
   - type: web
     name: browser-train
@@ -12,3 +14,4 @@ services:
         value: "22.17.1"
       - key: PYTHON_VERSION
         value: "3.12"
+

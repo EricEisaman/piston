@@ -8,6 +8,19 @@
   # ML deps live in requirements-ml.txt so Netlify does not install torch/numpy).
   PYTHON_VERSION = "3.12"
   # Optional: narrow datasets if build limits are hit, e.g. DATASETS=tinyshakespeare,tinystories
+  # Optional: SKIP_WASM=1 / FORCE_WASM=1 (see scripts/build-piston-train-toy.sh)
+
+# Persist Rust/WASM + dataset artifacts across deploys so fingerprint skip can hit.
+[[plugins]]
+  package = "netlify-plugin-cache"
+  [plugins.inputs]
+  paths = [
+    "target",
+    ".cargo",
+    ".cache/browser-train-data",
+    "examples/piston-train-toy/static/tokenizer",
+    "examples/piston-train-toy/static/tokenized"
+  ]
 
 [[headers]]
   for = "/*"
