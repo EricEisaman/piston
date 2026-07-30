@@ -25,6 +25,8 @@ export const lilSiggyCorpusState = $state<{
 
 let hydrated = false;
 
+const UI_PROGRESS_THROTTLE_MS = 100;
+
 /** Load manifest from IndexedDB into reactive state (idempotent). */
 export async function hydrateLilSiggyCorpusState(): Promise<void> {
 	if (hydrated && lilSiggyCorpusState.manifest) {
@@ -51,6 +53,7 @@ export async function uploadLilSiggyCorpus(file: File): Promise<void> {
 	lilSiggyCorpusState.error = null;
 	lilSiggyCorpusState.progress = 0;
 	lilSiggyCorpusState.warnLarge = file.size >= WARN_CORPUS_BYTES;
+	let lastUiProgressAt = 0;
 	try {
 		if (file.size > MAX_CORPUS_BYTES) {
 			throw new Error(
@@ -58,8 +61,13 @@ export async function uploadLilSiggyCorpus(file: File): Promise<void> {
 			);
 		}
 		const manifest = await ingestLilSiggyCorpus(file, (ratio) => {
-			lilSiggyCorpusState.progress = ratio;
+			const now = performance.now();
+			if (ratio >= 1 || now - lastUiProgressAt >= UI_PROGRESS_THROTTLE_MS) {
+				lastUiProgressAt = now;
+				lilSiggyCorpusState.progress = ratio;
+			}
 		});
+		lilSiggyCorpusState.progress = 1;
 		lilSiggyCorpusState.manifest = manifest;
 		lilSiggyCorpusState.ready = true;
 		hydrated = true;

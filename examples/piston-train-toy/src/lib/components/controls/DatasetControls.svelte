@@ -95,8 +95,9 @@
 	<div class="mb-2 space-y-1.5 border border-dashed border-purple-400 bg-purple-50/60 p-2 rounded">
 		<p class="text-xs font-medium text-purple-900">Upload corpus (.txt / .md)</p>
 		<p class="text-[11px] text-neutral-600 leading-snug">
-			Encoded with FineWeb BPE vocab 8192 (max {MAX_CORPUS_BYTES / (1024 * 1024)} MB). Use Lil Siggy
-			presets to train.
+			Encoded in a background worker with FineWeb BPE vocab 8192 (max
+			{MAX_CORPUS_BYTES / (1024 * 1024)} MB). Use Lil Siggy presets to train. GPT-2-sized steps can
+			still pause the UI briefly while the GPU is busy.
 		</p>
 		<input
 			bind:this={fileInput}
@@ -127,7 +128,7 @@
 		</div>
 		{#if lilSiggyCorpusState.ingesting}
 			<p class="text-[11px] text-purple-800 font-mono">
-				Ingesting… {Math.round(lilSiggyCorpusState.progress * 100)}%
+				Encoding in background… {Math.round(lilSiggyCorpusState.progress * 100)}%
 			</p>
 		{/if}
 		{#if lilSiggyCorpusState.error}

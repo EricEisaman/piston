@@ -18,7 +18,7 @@
 	<meta name="robots" content="index, follow" />
 	<meta name="googlebot" content="index, follow" />
 	<link rel="icon" href="/favicon.ico" sizes="32x32" />
-	<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+	<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 	<meta name="application-name" content="Browser Train" />
 	<meta name="subject" content="Machine Learning Training Interface" />
