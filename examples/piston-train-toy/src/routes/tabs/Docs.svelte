@@ -249,9 +249,10 @@
 								{/each}
 							</div>
 							<p class="text-xs text-neutral-500 mt-2 leading-relaxed">
-								<strong>A · ORT</strong> works for decoder and encoder-decoder.
-								<strong>B · Transformers.js</strong> is decoder-only today (TinyStories / FineWeb
-								style). EncDec toys (sort, reverse, two-sum) use path A.
+								<strong>A · ORT</strong> — <code>complete</code> / <code>encodeDecode</code> /
+								<code>encodeMasked</code>.
+								<strong>B · Transformers.js</strong> — CausalLM (decoder), Seq2SeqLM (EncDec /
+								BART), MaskedLM (Dyck / BERT). Prefer <code>*-onnx</code> presets.
 							</p>
 						</div>
 

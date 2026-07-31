@@ -153,7 +153,9 @@ export function triggerVramLimitFlash() {
 
 	// Scroll to GPU memory limit after a brief delay to allow section to open
 	setTimeout(() => {
-		const trainingVramLimitElement = document.getElementById('training-vram-limit');
+		const trainingVramLimitElement =
+			document.getElementById('gpu-memory-limit') ??
+			document.getElementById('gpu-vram-limit-value');
 		flashVramLimit = true;
 		if (trainingVramLimitElement) {
 			trainingVramLimitElement.scrollIntoView({

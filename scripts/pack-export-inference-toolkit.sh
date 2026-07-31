@@ -23,6 +23,7 @@ cp "$SRC/models.py" "$DEST/export_inference/"
 cp "$SRC/validate.py" "$DEST/export_inference/"
 cp "$SRC/weights.py" "$DEST/export_inference/"
 cp "$SRC/transformers_js.py" "$DEST/export_inference/"
+cp "$SRC/parity_v1_ext.py" "$DEST/export_inference/"
 cp "$SRC/requirements.txt" "$DEST/requirements.txt"
 
 cat >"$DEST/README.md" <<'EOF'
@@ -76,26 +77,32 @@ Default output (both targets):
 
 | Path | Use with |
 |------|----------|
-| `out/ort/` | onnxruntime-web (`browser-train-infer`: `loadModel` / `complete` / `encodeDecode`) |
-| `out/transformers-js/` | `@huggingface/transformers` (`browser-train-infer-tjs`, decoder-only) |
+| `out/ort/` | onnxruntime-web (`complete` / `encodeDecode` / `encodeMasked`) |
+| `out/transformers-js/` | `@huggingface/transformers` (CausalLM / Seq2SeqLM / MaskedLM) |
 
 Optional: `--targets ort` or `--targets transformers-js` for a single layout.
+
+## Architectures (v1-ext)
+
+| Topology | ORT | Transformers.js |
+|----------|-----|-----------------|
+| decoder | `complete` | `AutoModelForCausalLM` (gpt2) |
+| encoder-decoder | `encodeDecode` | `AutoModelForSeq2SeqLM` (BART) |
+| encoder (Dyck) | `encodeMasked` | `AutoModelForMaskedLM` (BERT) |
 
 ## Next steps
 
 - **ORT:** copy `out/ort/*` into a small onnxruntime-web app’s `public/model/`
   (see `examples/browser-train-infer`).
-- **Transformers.js (decoder):** copy `out/transformers-js/*` into
+- **Transformers.js:** copy `out/transformers-js/*` into
   `public/models/browser-train/` (see `examples/browser-train-infer-tjs`).
-- **Encoder-decoder toys:** generation stays on the ORT path; the Transformers.js
-  folder is packaging/tokenizer only (no Seq2Seq AutoModel in v1).
 
 Full visual guide + per-preset copy-paste snippets: Browser Train → **Docs** tab.
 
 ## Notes
 
 - Do not commit or share the `.venv` folder; re-run `setup` on each machine.
-- Encoder-only (Dyck / MLM) and RNN export are not supported in this toolkit yet.
+- RNN export is still unsupported. Prefer `*-onnx` presets (gating / GQA / qkNorm block export).
 EOF
 
 cat >"$DEST/setup.sh" <<'EOF'

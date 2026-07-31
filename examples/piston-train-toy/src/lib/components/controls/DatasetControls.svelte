@@ -96,8 +96,8 @@
 		<p class="text-xs font-medium text-purple-900">Upload corpus (.txt / .md)</p>
 		<p class="text-[11px] text-neutral-600 leading-snug">
 			Encoded in a background worker with FineWeb BPE vocab 8192 (max
-			{MAX_CORPUS_BYTES / (1024 * 1024)} MB). Use Lil Siggy presets to train. GPT-2-sized steps can
-			still pause the UI briefly while the GPU is busy.
+			{MAX_CORPUS_BYTES / (1024 * 1024)} MB). Use Lil Siggy presets to train. The first GPT-2-sized
+			step can take a while; the UI may pause while the GPU is busy.
 		</p>
 		<input
 			bind:this={fileInput}

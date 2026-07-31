@@ -72,13 +72,13 @@ export const END_TO_END_FLOW: {
 		id: 'ort',
 		title: 'Deploy: onnxruntime-web',
 		where: 'deploy',
-		body: 'Copy out/ort/* → public/model/. Use loadModel + complete (decoder) or encodeDecode (EncDec). Example: browser-train-infer.'
+		body: 'Copy out/ort/* → public/model/. Use loadModel + complete (decoder), encodeDecode (EncDec), or encodeMasked (encoder / Dyck). Example: browser-train-infer.'
 	},
 	{
 		id: 'tjs',
 		title: 'Deploy: Transformers.js',
 		where: 'deploy',
-		body: 'Decoder only: copy out/transformers-js/* → public/models/browser-train/. Use AutoTokenizer + AutoModelForCausalLM. Example: browser-train-infer-tjs. EncDec toys stay on ORT.'
+		body: 'Copy out/transformers-js/* → public/models/browser-train/. CausalLM (decoder), Seq2SeqLM (EncDec / BART), or MaskedLM (encoder / BERT). Example: browser-train-infer-tjs.'
 	}
 ];
 
@@ -101,17 +101,13 @@ export const SHARED_PIPELINE_STEPS: { title: string; body: string }[] = [
 	},
 	{
 		title: '5. Run with ORT',
-		body: 'Copy out/ort/* into a small onnxruntime-web app’s public/model/ (model.onnx, ort-manifest.json, tokenizer files). Call loadModel, then complete (decoder) or encodeDecode (encoder-decoder).'
+		body: 'Copy out/ort/* into a small onnxruntime-web app’s public/model/ (model.onnx, ort-manifest.json, tokenizer files). Call loadModel, then complete (decoder), encodeDecode (encoder-decoder), or encodeMasked (encoder / Dyck).'
 	},
 	{
-		title: '6. Run with Transformers.js (decoder)',
-		body: 'For decoder-only packages, copy out/transformers-js/* into public/models/browser-train/ and use examples/browser-train-infer-tjs (@huggingface/transformers AutoTokenizer + AutoModelForCausalLM). Encoder-decoder toys stay on the ORT path for generation (Seq2Seq AutoModel is out of v1).'
+		title: '6. Run with Transformers.js',
+		body: 'Copy out/transformers-js/* into public/models/browser-train/ and use examples/browser-train-infer-tjs: AutoModelForCausalLM (decoder / gpt2), AutoModelForSeq2SeqLM (EncDec / BART), or AutoModelForMaskedLM (encoder / BERT).'
 	}
 ];
-
-const ENCDEC_TJS_NOTE = `// Encoder-decoder: use ORT encodeDecode (browser-train-infer).
-// Transformers.js AutoModelForSeq2SeqLM is not supported in v1.
-// Copy out/ort/* → public/model/ and call encodeDecode.`;
 
 function ortEncodeDecode(sample: string): string {
 	return `import { loadModel, encodeDecode } from './infer';
@@ -120,6 +116,16 @@ function ortEncodeDecode(sample: string): string {
 const model = await loadModel('/model/');
 const { text, tokens } = await encodeDecode(model, ${JSON.stringify(sample)});
 console.log(text, tokens);`;
+}
+
+function ortEncodeMasked(sample: string): string {
+	return `import { loadModel, encodeMasked } from './infer';
+
+// Serve out/ort/* at /model/ (model.onnx, ort-manifest.json, vocab…)
+const model = await loadModel('/model/');
+// Dyck uses <mask> in the char vocab
+const { text, tokens, filledPositions } = await encodeMasked(model, ${JSON.stringify(sample)});
+console.log(text, tokens, filledPositions);`;
 }
 
 function ortComplete(sample: string, maxNewTokens: number): string {
@@ -160,6 +166,64 @@ const ids = output.tolist ? output.tolist()[0] : output[0];
 console.log(tokenizer.decode(ids, { skip_special_tokens: true }));`;
 }
 
+function tjsSeq2Seq(sample: string, maxNewTokens: number): string {
+	return `import {
+  env,
+  AutoTokenizer,
+  AutoModelForSeq2SeqLM
+} from '@huggingface/transformers';
+
+// Copy out/transformers-js/* → public/models/browser-train/ (BART packaging)
+env.allowLocalModels = true;
+env.allowRemoteModels = false;
+env.localModelPath = '/models/';
+
+const tokenizer = await AutoTokenizer.from_pretrained('browser-train');
+const model = await AutoModelForSeq2SeqLM.from_pretrained('browser-train', {
+  dtype: 'fp32'
+});
+
+const encoded = await tokenizer(${JSON.stringify(sample)});
+const output = await model.generate({
+  ...encoded,
+  max_new_tokens: ${maxNewTokens},
+  do_sample: false
+});
+const ids = output.tolist ? output.tolist()[0] : output[0];
+console.log(tokenizer.decode(ids, { skip_special_tokens: true }));`;
+}
+
+function tjsMaskedLm(sample: string): string {
+	return `import {
+  env,
+  AutoTokenizer,
+  AutoModelForMaskedLM
+} from '@huggingface/transformers';
+
+// Copy out/transformers-js/* → public/models/browser-train/ (BERT packaging)
+env.allowLocalModels = true;
+env.allowRemoteModels = false;
+env.localModelPath = '/models/';
+
+const tokenizer = await AutoTokenizer.from_pretrained('browser-train');
+const model = await AutoModelForMaskedLM.from_pretrained('browser-train', {
+  dtype: 'fp32'
+});
+
+// Prompt must include the <mask> token (Dyck char vocab)
+const encoded = await tokenizer(${JSON.stringify(sample)}, { return_tensor: false });
+const inputIds = Array.isArray(encoded.input_ids[0])
+  ? encoded.input_ids[0]
+  : encoded.input_ids;
+const out = await model.forward({
+  input_ids: [inputIds],
+  attention_mask: [inputIds.map(() => 1)],
+  token_type_ids: [inputIds.map(() => 0)]
+});
+// Argmax at mask positions — see browser-train-infer-tjs for full fill logic
+console.log(out.logits);`;
+}
+
 /**
  * Per-visible-preset inference docs. Labels are resolved via getPresetOptions() at render time.
  */
@@ -178,8 +242,8 @@ export const INFERENCE_PRESET_DOCS: InferencePresetDoc[] = [
 		sampleInput: 'CBA:',
 		expectedOutput: 'Decoded sorted tokens, e.g. ABC (exact string depends on vocab / commas).',
 		ortSnippet: ortEncodeDecode('CBA:'),
-		transformersJsSnippet: ENCDEC_TJS_NOTE,
-		notes: 'Stock sort-characters may not be ONNX-exportable until you overlay onnx-export-friendly or use sort-characters-onnx. Deploy with ORT encodeDecode.'
+		transformersJsSnippet: tjsSeq2Seq('CBA:', 16),
+		notes: 'Stock sort-characters may not be ONNX-exportable until you overlay onnx-export-friendly or use sort-characters-onnx. Prefer ORT encodeDecode or TJS Seq2SeqLM after convert.'
 	},
 	{
 		presetId: 'sort-characters-onnx',
@@ -189,47 +253,78 @@ export const INFERENCE_PRESET_DOCS: InferencePresetDoc[] = [
 		exportChecklist: [
 			'Already ONNX-friendly (attention none/none, qkNorm off)',
 			'Purple ONNX download → .inference.safetensors + .model.json',
-			'Convert → copy out/ort/* into your onnxruntime-web app'
+			'Convert → out/ort/ (encodeDecode) and/or out/transformers-js/ (Seq2SeqLM / BART)'
 		],
 		sampleInput: 'CBA:',
 		expectedOutput: 'Decoded sorted characters after the prompt colon.',
 		ortSnippet: ortEncodeDecode('CBA:'),
-		transformersJsSnippet: ENCDEC_TJS_NOTE
+		transformersJsSnippet: tjsSeq2Seq('CBA:', 16)
 	},
 	{
 		presetId: 'reverse-sequence',
 		architecture: 'encoder-decoder',
 		support: 'exportable',
 		howToSelect:
-			'Presets → Reverse Sequence. Apply ONNX export-friendly (or equivalent settings) before purple ONNX download.',
+			'Presets → Reverse Sequence. Prefer Reverse Sequence (ONNX) or apply ONNX export-friendly before purple download.',
 		exportChecklist: [
 			'Apply onnx-export-friendly if the purple ONNX button reports unsupported settings',
 			'Match reverse toy format (letters + colon by default)',
-			'Convert → out/ort/ + encodeDecode'
+			'Convert → out/ort/ + encodeDecode, or out/transformers-js/ + Seq2SeqLM'
 		],
 		sampleInput: 'ABC:',
 		expectedOutput: 'Reversed letter sequence (e.g. CBA for prompt ABC:).',
 		ortSnippet: ortEncodeDecode('ABC:'),
-		transformersJsSnippet: ENCDEC_TJS_NOTE,
-		notes: 'Default reverse preset may need the ONNX export-friendly overlay before export.'
+		transformersJsSnippet: tjsSeq2Seq('ABC:', 16),
+		notes: 'Prefer reverse-sequence-onnx for a clean export path.'
+	},
+	{
+		presetId: 'reverse-sequence-onnx',
+		architecture: 'encoder-decoder',
+		support: 'exportable',
+		howToSelect: 'Presets → Reverse Sequence (ONNX exportable).',
+		exportChecklist: [
+			'Already ONNX-friendly',
+			'Purple ONNX download → convert',
+			'ORT encodeDecode or Transformers.js AutoModelForSeq2SeqLM'
+		],
+		sampleInput: 'ABC:',
+		expectedOutput: 'Reversed letter sequence (e.g. CBA for prompt ABC:).',
+		ortSnippet: ortEncodeDecode('ABC:'),
+		transformersJsSnippet: tjsSeq2Seq('ABC:', 16)
 	},
 	{
 		presetId: 'two-sum',
 		architecture: 'encoder-decoder',
 		support: 'exportable',
 		howToSelect:
-			'Presets → Two Sum. Apply ONNX export-friendly before purple ONNX download if needed.',
+			'Presets → Two Sum. Prefer Two Sum (ONNX) or apply ONNX export-friendly before purple download.',
 		exportChecklist: [
 			'Apply onnx-export-friendly when stock settings block export',
 			'Prompt uses padded numbers + :target= (expression tokens on by default)',
-			'Convert → out/ort/ + encodeDecode'
+			'Convert → out/ort/ + encodeDecode, or out/transformers-js/ + Seq2SeqLM'
 		],
 		sampleInput: '03010705:08=',
 		expectedOutput:
 			'The two addends that sum to the target (format depends on commas / expression tokens).',
 		ortSnippet: ortEncodeDecode('03010705:08='),
-		transformersJsSnippet: ENCDEC_TJS_NOTE,
-		notes: 'Two-sum token strings are zero-padded to maxNumber width; match your training config.'
+		transformersJsSnippet: tjsSeq2Seq('03010705:08=', 16),
+		notes: 'Prefer two-sum-onnx for a clean export path. Token strings are zero-padded to maxNumber width.'
+	},
+	{
+		presetId: 'two-sum-onnx',
+		architecture: 'encoder-decoder',
+		support: 'exportable',
+		howToSelect: 'Presets → Two Sum (ONNX exportable).',
+		exportChecklist: [
+			'Already ONNX-friendly',
+			'Purple ONNX download → convert',
+			'ORT encodeDecode or Transformers.js AutoModelForSeq2SeqLM'
+		],
+		sampleInput: '03010705:08=',
+		expectedOutput:
+			'The two addends that sum to the target (format depends on commas / expression tokens).',
+		ortSnippet: ortEncodeDecode('03010705:08='),
+		transformersJsSnippet: tjsSeq2Seq('03010705:08=', 16)
 	},
 	{
 		presetId: 'tinystories',
@@ -337,19 +432,33 @@ export const INFERENCE_PRESET_DOCS: InferencePresetDoc[] = [
 		presetId: 'dyck-encoder',
 		architecture: 'encoder',
 		support: 'unsupported',
-		howToSelect: 'Presets → Dyck Encoder (MLM).',
+		howToSelect:
+			'Presets → Dyck Encoder. Purple ONNX is blocked while gating/qkNorm are on — switch to dyck-encoder-onnx.',
 		exportChecklist: [
-			'Encoder / MLM export is not supported in v1 (Phase 3)',
-			'Purple ONNX inference package is for decoder and encoder-decoder only today'
+			'Stock Dyck keeps quality defaults that block purple ONNX export',
+			'Prefer dyck-encoder-onnx (encoder-toy-base + onnx-export-friendly + dyck)',
+			'Then purple download → convert → ORT encodeMasked / TJS MaskedLM'
 		],
-		sampleInput: '( [ ) ]  (masked MLM positions — training-only)',
-		expectedOutput: 'N/A until encoder export lands.',
-		ortSnippet: `// Not supported yet (Phase 3).
-// Intended future shape (illustrative only):
-// const model = await loadModel('/model/');
-// const logits = await encodeMasked(model, tokens, maskPositions);`,
-		transformersJsSnippet: null,
-		notes: 'Documented for completeness. Do not expect the purple ONNX download / ORT path to work for this preset yet.'
+		sampleInput: '(<mask>)',
+		expectedOutput: 'Filled bracket at the <mask> position (after training on the ONNX sibling).',
+		ortSnippet: ortEncodeMasked('(<mask>)'),
+		transformersJsSnippet: tjsMaskedLm('(<mask>)'),
+		notes: 'Train (or retrain) on dyck-encoder-onnx for export. Stock dyck-encoder still trains in-app; purple export points you at the sibling.'
+	},
+	{
+		presetId: 'dyck-encoder-onnx',
+		architecture: 'encoder',
+		support: 'exportable',
+		howToSelect: 'Presets → Toy: Dyck (Encoder, ONNX exportable).',
+		exportChecklist: [
+			'Already ONNX-friendly (no GQA / gating / qkNorm)',
+			'Purple ONNX download → .inference.safetensors + .model.json',
+			'Convert → out/ort/ encodeMasked + out/transformers-js/ AutoModelForMaskedLM (BERT)'
+		],
+		sampleInput: '(<mask>)',
+		expectedOutput: 'Argmax fill at <mask> positions (balanced Dyck completion after training).',
+		ortSnippet: ortEncodeMasked('(<mask>)'),
+		transformersJsSnippet: tjsMaskedLm('(<mask>)')
 	},
 	{
 		presetId: 'onnx-export-friendly',
@@ -366,10 +475,12 @@ export const INFERENCE_PRESET_DOCS: InferencePresetDoc[] = [
 		expectedOutput: '(inherits the base preset API)',
 		ortSnippet: `// Modifier only — pick the base task's API after export.
 // Encoder-decoder toys → encodeDecode(model, prompt)  // out/ort/
+// Encoder / Dyck → encodeMasked(model, prompt)       // out/ort/
 // Decoder LMs → complete(model, prompt)               // out/ort/`,
 		transformersJsSnippet: `// Modifier only — after convert:
 // Decoder LMs → AutoModelForCausalLM (out/transformers-js/)
-// Encoder-decoder → stay on ORT encodeDecode (out/ort/)`,
+// Encoder-decoder → AutoModelForSeq2SeqLM (BART packaging)
+// Encoder / Dyck → AutoModelForMaskedLM (BERT packaging)`,
 		notes: 'Required overlay when a stock preset enables gating or qkNorm that block export.'
 	}
 ];

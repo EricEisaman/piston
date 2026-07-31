@@ -149,8 +149,22 @@ flowchart LR
   Enc["Encoder stack<br/>bidirectional self-attn"]:::enc
   Mlp["MLP per block"]:::mlp
   MLM["Masked LM head"]:::out
+  Warn["Purple blocked<br/>gating / qkNorm"]:::warn
   Seq --> Emb --> Enc --> Mlp
   Enc --> MLM
+  MLM --- Warn
+`);
+
+const ENCODER_DYCK_ONNX = withStyles(`
+flowchart LR
+  Seq["Dyck + onnx-export-friendly"]:::input
+  Emb["Embed + learned PE"]:::embed
+  Enc["Encoder - standard GELU<br/>no GQA / gating / qkNorm"]:::enc
+  Mlp["Standard MLP"]:::mlp
+  MLM["MLM head → vocab"]:::out
+  Tip["ORT encodeMasked<br/>TJS MaskedLM / BERT"]:::tip
+  Seq --> Emb --> Enc --> Mlp
+  Enc --> MLM --> Tip
 `);
 
 const ONNX_MODIFIER = withStyles(`
@@ -184,14 +198,31 @@ export const ARCHITECTURE_DIAGRAMS: ArchitectureDiagram[] = [
 		mermaid: ENC_DEC_TOY
 	},
 	{
+		presetId: 'reverse-sequence-onnx',
+		summary: 'Reverse-sequence EncDec with ONNX-export-friendly attention/MLP settings.',
+		mermaid: ENC_DEC_ONNX
+	},
+	{
 		presetId: 'two-sum',
 		summary: 'Encoder–decoder toy: find numbers that add to a target sum.',
 		mermaid: ENC_DEC_TOY
 	},
 	{
+		presetId: 'two-sum-onnx',
+		summary: 'Two-sum EncDec with ONNX-export-friendly attention/MLP settings.',
+		mermaid: ENC_DEC_ONNX
+	},
+	{
 		presetId: 'dyck-encoder',
-		summary: 'Encoder-only (BERT-style MLM) for Dyck / balanced-parentheses languages.',
+		summary:
+			'Encoder-only (BERT-style MLM) for Dyck. Purple export blocked — prefer dyck-encoder-onnx.',
 		mermaid: ENCODER_DYCK
+	},
+	{
+		presetId: 'dyck-encoder-onnx',
+		summary:
+			'Dyck encoder sibling: export-safe graph → ORT encodeMasked + Transformers.js MaskedLM.',
+		mermaid: ENCODER_DYCK_ONNX
 	},
 	{
 		presetId: 'tinystories',

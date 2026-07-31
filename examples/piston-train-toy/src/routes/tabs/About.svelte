@@ -138,7 +138,7 @@
 				</p>
 
 				<p class="mb-4 text-sm text-neutral-700">
-					Inference export (purple ONNX download → convert → browser ORT) →
+					Inference export (purple ONNX download → convert → ORT / Transformers.js) →
 					<button
 						type="button"
 						class="text-purple-700 underline decoration-dotted underline-offset-2 font-medium cursor-pointer"
@@ -306,7 +306,14 @@
 										'match parentheses in a Dyck language',
 										'dyck-encoder',
 										'dataset-control'
-									)}<FN
+									)}
+									(or
+									{@render sPreset(
+										'Dyck ONNX exportable',
+										'dyck-encoder-onnx',
+										'dataset-control'
+									)}
+									for purple ONNX → MaskedLM)<FN
 										><!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 										<a
 											href="https://en.wikipedia.org/wiki/Dyck_language"

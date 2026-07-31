@@ -175,9 +175,12 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 						}
 					}
 				},
+				optimizer: {
+					type: 'AdamW'
+				},
 				training: {
 					// Explicit — do not rely only on FineWeb layer merge for GPT-2 VRAM headroom.
-					batchSize: 4,
+					batchSize: 2,
 					enableVisualization: false,
 					vramLimitMb: { present: true, value: 32_768 },
 					validation: {
@@ -222,6 +225,30 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 		label: 'Toy: Dyck (Encoder)',
 		layers: [{ preset: 'encoder-toy-base' }, { data: { dataset: 'dyck' } }]
 	},
+	'dyck-encoder-onnx': {
+		label: 'Toy: Dyck (Encoder, ONNX exportable)',
+		layers: [
+			{ preset: 'encoder-toy-base' },
+			{ preset: 'onnx-export-friendly' },
+			{ data: { dataset: 'dyck' } }
+		]
+	},
+	'reverse-sequence-onnx': {
+		label: 'Toy: Reverse Sequence (ONNX exportable)',
+		layers: [
+			{ preset: 'transformer-toy-base' },
+			{ preset: 'onnx-export-friendly' },
+			{ data: { dataset: 'reverse' } }
+		]
+	},
+	'two-sum-onnx': {
+		label: 'Toy: Two Sum (ONNX exportable)',
+		layers: [
+			{ preset: 'transformer-toy-base' },
+			{ preset: 'onnx-export-friendly' },
+			{ data: { dataset: 'two-sum' } }
+		]
+	},
 
 	tinystories: {
 		label: 'TinyStories with ~15M parameters',
@@ -257,7 +284,7 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 				training: {
 					batchSize: 4,
 					enableVisualization: false,
-					vramLimitMb: { present: true, value: 8192 },
+					vramLimitMb: { present: true, value: 32_768 },
 					logSteps: 20,
 					validation: {
 						batchSize: 4,
@@ -347,6 +374,7 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 					}
 				},
 				optimizer: {
+					type: 'AdamW',
 					lr: 1e-4,
 					lrScheduler: {
 						type: 'cosine',
@@ -358,7 +386,7 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 				training: {
 					enableVisualization: false,
 					logSteps: 20,
-					batchSize: 4,
+					batchSize: 2,
 					dropout: {
 						present: true,
 						embedding: 0.1,
@@ -370,7 +398,7 @@ export const PRESET_DEFINITIONS: Record<string, PresetDefinition> = {
 					vramLimitMb: { present: true, value: 32_768 },
 					validation: {
 						valSteps: 500,
-						batchSize: 16,
+						batchSize: 4,
 						temperature: 0.0,
 						completions: {
 							present: false

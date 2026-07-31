@@ -5,6 +5,7 @@ import type { IndexState, TensorQuery } from '@piston-ml/piston-web';
 import { SvelteMap } from 'svelte/reactivity';
 
 import { config } from './config.svelte';
+import { ensureVramHeadroom } from './ensureVramHeadroom';
 import { lastSessionStore } from './lastSessionStore';
 import { currentRun, log, runsMap } from './runs.svelte';
 import {
@@ -291,8 +292,24 @@ export async function initializeWorker() {
 						break;
 					}
 					case 'error':
+						if (data.name === 'InferenceExportError') {
+							console.error(`[Main] Inference export failed:`, data.message);
+							rejectPendingInferenceWaiters(
+								new Error(
+									typeof data.message === 'string' ? data.message : 'Inference export failed'
+								)
+							);
+							// Keep the run alive — export blockers must not kill training.
+							break;
+						}
 						if (data.name === 'VRAMLimitExceededError') {
-							console.error(`[Main] VRAM limit exceeded for run ${data.runId}:`, data.message);
+							const lim = config.training.vramLimitMb;
+							console.error(
+								`[Main] VRAM limit exceeded for run ${data.runId}:`,
+								data.message,
+								`configured=${lim.present ? `${lim.value} MB` : 'disabled'}`,
+								`preset=${config.preset ?? 'none'}`
+							);
 							triggerVramLimitFlash();
 						} else if (data.name === 'LowDiversityDatasetError') {
 							console.error(
@@ -342,11 +359,25 @@ export function workerStartTraining(runId: string, resumeFrom?: Uint8Array<Array
 		throw new Error('Worker not initialized');
 	}
 
+	ensureVramHeadroom(config);
+	const snapshot = $state.snapshot(config);
+	const heavyPreset =
+		snapshot.preset === 'fineweb' ||
+		snapshot.preset === 'fineweb-onnx' ||
+		snapshot.preset === 'lil-siggy' ||
+		snapshot.preset === 'lil-siggy-onnx' ||
+		(snapshot.model.topology === 'decoder' && snapshot.model.layers >= 12);
+	if (heavyPreset) {
+		console.info(
+			'[Main] First FineWeb/GPT-2 step can take a while; UI may pause while the GPU is busy.'
+		);
+	}
+
 	trainWorker.postMessage({
 		type: 'start',
 		data: {
 			runId: runId,
-			config: $state.snapshot(config),
+			config: snapshot,
 			resumeFrom,
 			gpuPowerPreference: gpuPowerPreference.current
 		}

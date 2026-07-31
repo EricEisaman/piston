@@ -9,9 +9,9 @@ copy-paste snippets for both runtimes.
 ## In the UI
 
 1. Train with an exportable preset:
-   - **Toy: Sort Characters (ONNX exportable)**
-   - **TinyStories (ONNX exportable)**
-   - **FineWeb GPT-2-sized (ONNX exportable)**
+   - **Toy: Sort Characters (ONNX exportable)** / reverse / two-sum `*-onnx`
+   - **Toy: Dyck (Encoder, ONNX exportable)** (`dyck-encoder-onnx`)
+   - **TinyStories / FineWeb / Lil Siggy (ONNX exportable)**
    - or apply **ONNX export-friendly (transformer)** on top of your config
 2. While a run is active, click the purple **ONNX** download control (next to the normal checkpoint download).
 3. You get:
@@ -41,10 +41,14 @@ Produces:
 
 | Path | Consumer |
 |------|----------|
-| `out/ort/` | [`examples/browser-train-infer`](../browser-train-infer) (`loadModel` / `complete` / `encodeDecode`) |
-| `out/transformers-js/` | [`examples/browser-train-infer-tjs`](../browser-train-infer-tjs) (decoder `AutoModelForCausalLM`) |
+| `out/ort/` | [`examples/browser-train-infer`](../browser-train-infer) (`complete` / `encodeDecode` / `encodeMasked`) |
+| `out/transformers-js/` | [`examples/browser-train-infer-tjs`](../browser-train-infer-tjs) (CausalLM / Seq2SeqLM / MaskedLM) |
 
-Encoder-decoder toys: use **ORT** for generation. The Transformers.js folder is layout/tokenizer only (no Seq2Seq AutoModel in v1).
+| Topology | ORT API | Transformers.js |
+|----------|---------|-----------------|
+| decoder | `complete` | `AutoModelForCausalLM` (gpt2) |
+| encoder-decoder | `encodeDecode` | `AutoModelForSeq2SeqLM` (BART) |
+| encoder (Dyck) | `encodeMasked` | `AutoModelForMaskedLM` (BERT) |
 
 Windows: `setup.bat` / `convert.bat`. See the README inside the zip.
 
@@ -61,11 +65,16 @@ PYTHONPATH=scripts python -m export_inference convert \
 # --targets ort|transformers-js|both
 ```
 
+Parity smoke (synthetic weights, no trained checkpoint):
+
+```bash
+PYTHONPATH=scripts python -m export_inference.parity_v1_ext
+```
+
 See [`scripts/export_inference/README.md`](../../scripts/export_inference/README.md).
 
-## Unsupported in v1
+## Unsupported in v1 / v1-ext
 
 - RoPE, ALiBi, GQA, attention gating, sinks, softcap
-- Encoder-only MLM and RNN (Phase 3)
-- EncDec → Transformers.js `AutoModelForSeq2SeqLM`
+- RNN export
 - Dropping an inference package back into Browser Train to resume training (use the full `.safetensors` for that)

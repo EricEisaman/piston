@@ -3,8 +3,7 @@
 Convert an inference package from Browser Train into:
 
 1. **ORT** — onnxruntime-web (`examples/browser-train-infer`)
-2. **Transformers.js** — Hub-style folder for decoder `AutoModelForCausalLM`
-   (`examples/browser-train-infer-tjs`)
+2. **Transformers.js** — Hub-style folder (`examples/browser-train-infer-tjs`)
 
 ## Site users (recommended)
 
@@ -19,6 +18,8 @@ That zip is packed by `scripts/pack-export-inference-toolkit.sh` and includes
 python3 -m venv .venv-export
 source .venv-export/bin/activate
 pip install -r scripts/export_inference/requirements.txt
+# optional, for parity_v1_ext ONNX graph checks:
+pip install onnxruntime
 ```
 
 ## Convert
@@ -51,7 +52,7 @@ out/
     generation_config.json
     tokenizer.json
     tokenizer_config.json
-    onnx/model.onnx
+    onnx/…                # model.onnx or EncDec split graphs
     browser_train_card.json
 ```
 
@@ -60,41 +61,38 @@ out/
 
 ### Decoder (TinyStories / FineWeb / decoder presets)
 
-`transformers-js/config.json` uses `model_type: "gpt2"` with matching sizes. ONNX accepts
-`input_ids` + `attention_mask` → `logits`. Load with `@huggingface/transformers`
-`AutoTokenizer` + `AutoModelForCausalLM` (see `browser-train-infer-tjs`).
+`transformers-js/config.json` uses `model_type: "gpt2"`. Load with
+`AutoTokenizer` + `AutoModelForCausalLM`.
 
-Natural-language HF tokenizers: Browser Train’s purple download also saves
-`{run}.tokenizer.json` (and often `{run}.tokenizer_config.json`). Keep those next to
-`{run}.inference.safetensors` — `convert` auto-installs them into `ort/` and
-`transformers-js/` as `tokenizer.json`. Override with `--tokenizer path/to/tokenizer.json`.
+### Encoder-decoder toys (sort / reverse / two-sum)
 
-If `tokenizer.note.json` still appears, the sidecar was missing; pass `--tokenizer` or
-copy the FineWeb/TinyStories file from `static/tokenizer`.
+ORT: `encodeDecode`. Transformers.js: BART-compatible packaging +
+`AutoModelForSeq2SeqLM` (`encoder_model.onnx`, `decoder_model.onnx`,
+`decoder_model_merged.onnx`).
 
-### Encoder-decoder toys
+### Encoder / Dyck (MLM)
 
-ORT `encodeDecode` is the supported generation path. The Transformers.js folder is still
-emitted for packaging consistency but **does not** pretend to be T5/BART; Seq2Seq AutoModel
-is out of v1.
+ORT: `encodeMasked` (char vocab includes `<mask>`). Transformers.js:
+BERT-compatible `BertForMaskedLM` + `AutoModelForMaskedLM`.
 
 ## Exportable training presets
 
 In Browser Train, use:
 
 - **Toy: Sort Characters (ONNX exportable)** (`sort-characters-onnx`)
-- **TinyStories (ONNX exportable)** (`tinystories-onnx`)
-- **FineWeb GPT-2-sized (ONNX exportable)** (`fineweb-onnx`)
-- **Lil Siggy (custom corpus · ONNX exportable)** (`lil-siggy-onnx`) — train on this sibling (not quality `lil-siggy`) so width stays 12×64 / 768 after GQA is stripped
-- Or layer **ONNX export-friendly (transformer)** on any decoder / encoder-decoder run
+- **Toy: Reverse Sequence (ONNX exportable)** (`reverse-sequence-onnx`)
+- **Toy: Two Sum (ONNX exportable)** (`two-sum-onnx`)
+- **Toy: Dyck (Encoder, ONNX exportable)** (`dyck-encoder-onnx`)
+- **TinyStories / FineWeb / Lil Siggy (ONNX exportable)**
+- Or layer **ONNX export-friendly (transformer)** on any decoder / EncDec / encoder run
 
-Unsupported (converter will refuse): RoPE, ALiBi, GQA, attention gating, qkNorm, sinks, softcap, RNN, encoder-only.
+Unsupported (converter will refuse): RoPE, ALiBi, GQA, attention gating, qkNorm, sinks, softcap, RNN.
 
-**Lil Siggy / Transformers.js:** after convert, load `out/transformers-js` with
-`AutoTokenizer` + `AutoModelForCausalLM` (`model_type: gpt2`). The stock
-`browser-train-infer` ORT demo only string-prompts char tokenizers — use Transformers.js
-(or tokenize externally) for Lil Siggy BPE.
+## Parity (v1-ext)
 
-## Phase 3 (not in this package)
+```bash
+PYTHONPATH=scripts python -m export_inference.parity_v1_ext
+```
 
-Encoder-only MLM and RNN export are deferred.
+Checks EncDec monolithic ORT path vs split encode/decode (TJS graphs) and encoder
+MLM ORT vs TJS ONNX argmax agreement on synthetic weights.

@@ -2,6 +2,7 @@
 	import { ActionButton } from 'example-common';
 	import Controls from '$lib/components/controls/Controls.svelte';
 	import { config, initSharedConfigUrlSync, replaceConfig } from '$lib/workspace/config.svelte';
+	import { ensureVramHeadroom } from '$lib/workspace/ensureVramHeadroom';
 	import { lastSessionStore } from '$lib/workspace/lastSessionStore';
 	import { currentRun, resetWorkspace, restoreRun, runCounter } from '$lib/workspace/runs.svelte';
 	import {
@@ -87,7 +88,9 @@
 		if (!lastSession) return;
 
 		// Replace config, restore run, select metrics tab, and start training
-		replaceConfig(lastSession.run.config);
+		const resumedConfig = ensureVramHeadroom(lastSession.run.config);
+		lastSession.run.config = resumedConfig;
+		replaceConfig(resumedConfig);
 		restoreRun(lastSession.run);
 		selectTab('metrics');
 		startTraining({ run: lastSession.run, resumeFrom: lastSession.checkpoint });
@@ -99,7 +102,7 @@
 	}
 
 	async function startFromBytes(bytes: ArrayBuffer) {
-		const cfg = await peekCheckpointConfig(new Uint8Array(bytes));
+		const cfg = ensureVramHeadroom(await peekCheckpointConfig(new Uint8Array(bytes)));
 		replaceConfig(cfg);
 		startTraining({ resumeFrom: new Uint8Array(bytes) });
 	}

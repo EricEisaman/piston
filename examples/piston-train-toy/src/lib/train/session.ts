@@ -217,7 +217,8 @@ export class TrainingSession {
 				idToToken,
 				bosId: this.trainDataset.bosId,
 				eosId: this.trainDataset.eosId,
-				padId: null
+				padId: null,
+				maskId: this.trainDataset.maskId ?? null
 			};
 		}
 		if (this.trainDataset instanceof NaturalLanguageDataset) {
@@ -281,9 +282,15 @@ export class TrainingSession {
 				decoder:
 					architecture === 'encoder-decoder'
 						? this.config.model.encoderDecoder.decoderLayers
-						: this.config.model.layers,
+						: architecture === 'encoder'
+							? 0
+							: this.config.model.layers,
 				encoder:
-					architecture === 'encoder-decoder' ? this.config.model.encoderDecoder.encoderLayers : 0
+					architecture === 'encoder-decoder'
+						? this.config.model.encoderDecoder.encoderLayers
+						: architecture === 'encoder'
+							? this.config.model.layers
+							: 0
 			},
 			numSteps: this.stepCount,
 			tokenizer: this.buildTokenizerSpec(),

@@ -93,10 +93,10 @@
 	<body>
 		<h1>Browser Train → Transformers.js</h1>
 		<p class="hint">
-			Decoder-only packages from
-			<code>export_inference convert</code> (<code>out/transformers-js/</code>). Copy that folder to
-			<code>public/models/browser-train/</code>. Encoder-decoder toys still use the ORT demo
-			(<code>browser-train-infer</code>).
+			Packages from <code>export_inference convert</code> (<code>out/transformers-js/</code>).
+			Copy into <code>public/models/browser-train/</code>. Supports decoder
+			<code>CausalLM</code>, EncDec <code>Seq2SeqLM</code> (BART), and encoder
+			<code>MaskedLM</code> (BERT / Dyck). ORT fallback: <code>browser-train-infer</code>.
 		</p>
 
 		<label for="modelId">Model id (under /models/)</label>

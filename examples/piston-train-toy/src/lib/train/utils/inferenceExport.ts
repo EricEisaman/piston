@@ -2,7 +2,7 @@ import type { Config } from '$lib/workspace/config';
 
 export const INFERENCE_FORMAT = 'browser-train-inference-v1' as const;
 
-export type InferenceArchitecture = 'decoder' | 'encoder-decoder';
+export type InferenceArchitecture = 'decoder' | 'encoder-decoder' | 'encoder';
 
 export type InferenceTokenizerSpec =
 	| {
@@ -12,6 +12,8 @@ export type InferenceTokenizerSpec =
 			bosId: number | null;
 			eosId: number | null;
 			padId: number | null;
+			/** MLM mask token id (`<mask>` for Dyck / encoder toys) */
+			maskId?: number | null;
 	  }
 	| {
 			kind: 'hf';
@@ -21,6 +23,7 @@ export type InferenceTokenizerSpec =
 			bosId?: number | null;
 			eosId?: number | null;
 			padId?: number | null;
+			maskId?: number | null;
 	  };
 
 export interface InferenceExportProfile {
@@ -145,9 +148,9 @@ export const getInferenceExportBlockers = (config: Config): string[] => {
 	}
 
 	const topology = config.model.topology;
-	if (topology !== 'decoder' && topology !== 'encoder-decoder') {
+	if (topology !== 'decoder' && topology !== 'encoder-decoder' && topology !== 'encoder') {
 		blockers.push(
-			`model.topology must be "decoder" or "encoder-decoder" for v1 export (got "${topology}")`
+			`model.topology must be "decoder", "encoder-decoder", or "encoder" for v1-ext export (got "${topology}")`
 		);
 	}
 
@@ -199,6 +202,9 @@ export const assertInferenceExportable = (config: Config): void => {
 export const resolveInferenceArchitecture = (config: Config): InferenceArchitecture => {
 	if (config.model.topology === 'encoder-decoder') {
 		return 'encoder-decoder';
+	}
+	if (config.model.topology === 'encoder') {
+		return 'encoder';
 	}
 	return 'decoder';
 };

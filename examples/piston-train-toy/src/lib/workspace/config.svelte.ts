@@ -73,7 +73,7 @@ const CONFIG_DEFAULTS: Config = {
 		enableVisualization: true,
 		vramLimitMb: {
 			present: true,
-			value: 4096
+			value: 8192
 		},
 		checkpointEverySteps: {
 			present: true,

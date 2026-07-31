@@ -13,8 +13,9 @@ Minimal webapp that loads an ORT package produced by
 4. Copy `out/ort/*` into `public/model/`.
 5. `pnpm install && pnpm dev` → Load model → Run.
 
-Works for **decoder** (`complete`) and **encoder-decoder** (`encodeDecode`).
-See Browser Train **Docs** for the visual guide and per-preset snippets.
+Works for **decoder** (`complete`), **encoder-decoder** (`encodeDecode`), and
+**encoder / Dyck** (`encodeMasked`). See Browser Train **Docs** for the visual
+guide and per-preset snippets.
 
 ## Setup
 
@@ -38,36 +39,36 @@ pnpm dev
 ```
 
 Open the app, click **Load model**, enter a prompt (for sort-characters EncDec try
-something like `CBA:`), then **Run**.
+`CBA:`; for Dyck try `(<mask>)`), then **Run**.
 
 ## Integrate into another webapp
 
 Copy `src/infer.ts` + `src/types.ts`, depend on `onnxruntime-web`, and call:
 
 ```ts
-import { loadModel, complete, encodeDecode } from './infer';
+import { loadModel, complete, encodeDecode, encodeMasked } from './infer';
 
 const model = await loadModel('/model/');
 
 // Encoder-decoder toys (sort / reverse / two-sum):
 const { text } = await encodeDecode(model, 'CBA:');
 
+// Encoder / Dyck MLM:
+// const { text } = await encodeMasked(model, '(<mask>)');
+
 // Decoder LMs (TinyStories / FineWeb):
 // const { text } = await complete(model, 'Once upon a time', { maxNewTokens: 64 });
 ```
 
 Serve `model.onnx`, `ort-manifest.json`, and tokenizer files as static assets.
-For Netlify/static hosts, no special headers are required beyond a correct
-`Content-Type` for `.wasm` if you vendor ORT wasm files yourself (Vite handles
-this in this example).
 
 ## Transformers.js
 
-Decoder packages also emit `out/transformers-js/` from the same convert. Use
+The same convert also emits `out/transformers-js/`. Use
 [`../browser-train-infer-tjs`](../browser-train-infer-tjs) for
-`@huggingface/transformers`. EncDec generation stays in this ORT app.
+`@huggingface/transformers` (CausalLM / Seq2SeqLM / MaskedLM).
 
 ## Non-goals
 
-- EncDec → Transformers.js Seq2Seq AutoModel (v1)
-- RNN / encoder-only MLM (Phase 3)
+- Arbitrary GQA / gating / qkNorm graphs (use `*-onnx` presets)
+- RNN export

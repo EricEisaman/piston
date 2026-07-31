@@ -1,4 +1,6 @@
-# Browser Train → ONNX export (Phase 1–2)
+# Browser Train → ONNX export (v1 / v1-ext)
 torch>=2.1.0
 safetensors>=0.4.0
 numpy>=1.24.0
+# Optional: parity_v1_ext ONNX graph checks
+# onnxruntime>=1.16.0

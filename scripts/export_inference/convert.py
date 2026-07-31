@@ -121,6 +121,13 @@ def _write_ort_tokenizer(
             "bosId": tok.get("bosId"),
             "eosId": tok.get("eosId"),
             "padId": tok.get("padId"),
+            "maskId": tok.get("maskId"),
+            "maskToken": next(
+                (str(v) for k, v in id_to_token.items() if int(k) == int(tok["maskId"])),
+                "<mask>",
+            )
+            if tok.get("maskId") is not None
+            else None,
         }
         (out_dir / "vocab.json").write_text(json.dumps(vocab, indent=2), encoding="utf-8")
         (out_dir / "special_tokens.json").write_text(json.dumps(special, indent=2), encoding="utf-8")
@@ -157,7 +164,7 @@ def _export_ort_onnx(
 ) -> list[dict[str, str]]:
     import torch
 
-    from .models import DecoderLM, EncoderDecoderLM
+    from .models import DecoderLM, EncoderDecoderLM, EncoderLM
 
     onnx_path.parent.mkdir(parents=True, exist_ok=True)
     if architecture == "encoder-decoder":
@@ -176,10 +183,38 @@ def _export_ort_onnx(
                 "logits": {0: "batch", 1: "tgt_len"},
             },
             opset_version=opset,
+            dynamo=False,
         )
         return [
             {"name": "encoder_input_ids", "dtype": "int64"},
             {"name": "decoder_input_ids", "dtype": "int64"},
+        ]
+
+    if architecture == "encoder":
+        assert isinstance(module, EncoderLM)
+        seq = min(8, module.block_size)
+        ids = torch.zeros((1, seq), dtype=torch.long)
+        mask = torch.ones((1, seq), dtype=torch.long)
+        types = torch.zeros((1, seq), dtype=torch.long)
+        torch.onnx.export(
+            module,
+            (ids, mask, types),
+            str(onnx_path),
+            input_names=["input_ids", "attention_mask", "token_type_ids"],
+            output_names=["logits"],
+            dynamic_axes={
+                "input_ids": {0: "batch", 1: "seq"},
+                "attention_mask": {0: "batch", 1: "seq"},
+                "token_type_ids": {0: "batch", 1: "seq"},
+                "logits": {0: "batch", 1: "seq"},
+            },
+            opset_version=opset,
+            dynamo=False,
+        )
+        return [
+            {"name": "input_ids", "dtype": "int64"},
+            {"name": "attention_mask", "dtype": "int64"},
+            {"name": "token_type_ids", "dtype": "int64"},
         ]
 
     assert isinstance(module, DecoderLM)
@@ -195,6 +230,7 @@ def _export_ort_onnx(
             "logits": {0: "batch", 1: "seq"},
         },
         opset_version=opset,
+        dynamo=False,
     )
     return [{"name": "input_ids", "dtype": "int64"}]
 
@@ -241,6 +277,7 @@ def convert(
     from .weights import (
         build_decoder_from_card,
         build_encdec_from_card,
+        build_encoder_from_card,
         load_into_module,
         load_tensors,
     )
@@ -259,8 +296,8 @@ def convert(
         )
 
     architecture = card.get("architecture") or card["config"]["model"]["topology"]
-    if architecture == "encoder":
-        architecture = "decoder"
+    if architecture not in ("decoder", "encoder-decoder", "encoder"):
+        raise SystemExit(f'Unsupported architecture "{architecture}"')
     print(f"==> architecture={architecture} targets={sorted(targets)}")
 
     tensors = load_tensors(str(checkpoint))
@@ -268,6 +305,8 @@ def convert(
 
     if architecture == "encoder-decoder":
         module: Any = build_encdec_from_card(card)
+    elif architecture == "encoder":
+        module = build_encoder_from_card(card)
     else:
         module = build_decoder_from_card(card)
     module.eval()

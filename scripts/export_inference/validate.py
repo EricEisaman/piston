@@ -15,9 +15,9 @@ def get_blockers(model_card: dict[str, Any]) -> list[str]:
 
     if family != "transformer":
         blockers.append(f'model.family must be "transformer" (got "{family}")')
-    if topology not in ("decoder", "encoder-decoder"):
+    if topology not in ("decoder", "encoder-decoder", "encoder"):
         blockers.append(
-            f'model.topology must be "decoder" or "encoder-decoder" (got "{topology}")'
+            f'model.topology must be "decoder", "encoder-decoder", or "encoder" (got "{topology}")'
         )
     if not profile.get("attentionPresent", True):
         blockers.append("transformer attention must be enabled")

@@ -1,4 +1,4 @@
-import { complete, encodeDecode, loadModel } from './infer';
+import { complete, encodeDecode, encodeMasked, loadModel } from './infer';
 import type { LoadedModel } from './types';
 
 let model: LoadedModel | null = null;
@@ -46,12 +46,16 @@ runBtn.addEventListener('click', async () => {
 			modeEl.value === 'auto'
 				? model.architecture === 'encoder-decoder'
 					? 'encdec'
-					: 'decoder'
+					: model.architecture === 'encoder'
+						? 'encoder'
+						: 'decoder'
 				: modeEl.value;
 		const result =
 			mode === 'encdec'
 				? await encodeDecode(model, prompt, { maxNewTokens: 48 })
-				: await complete(model, prompt, { maxNewTokens: 48 });
+				: mode === 'encoder'
+					? await encodeMasked(model, prompt)
+					: await complete(model, prompt, { maxNewTokens: 48 });
 		outputEl.textContent = result.text ?? JSON.stringify(result.tokens);
 		setStatus('Done');
 	} catch (err) {

@@ -35,4 +35,5 @@ profile.json
 # webdriver configs
 webdriver.json
 .venv-data/
+.venv-export/
 .cache/

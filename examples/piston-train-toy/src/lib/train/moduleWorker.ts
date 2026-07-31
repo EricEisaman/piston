@@ -268,6 +268,17 @@ self.addEventListener('message', async (event) => {
 				}
 
 				console.info(`Starting training for run ${runIdFromData}`);
+				const heavyPreset =
+					config.preset === 'fineweb' ||
+					config.preset === 'fineweb-onnx' ||
+					config.preset === 'lil-siggy' ||
+					config.preset === 'lil-siggy-onnx' ||
+					(config.model.topology === 'decoder' && config.model.layers >= 12);
+				if (heavyPreset) {
+					console.info(
+						'First FineWeb/GPT-2 step can take a while; UI may pause while the GPU is busy.'
+					);
+				}
 				session = new TrainingSession(runIdFromData, config, postEvent, resumeFrom);
 				if (pendingVisualizerCanvas) {
 					try {

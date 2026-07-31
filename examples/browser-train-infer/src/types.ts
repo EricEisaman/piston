@@ -1,5 +1,5 @@
 export type OrtManifest = {
-	architecture: 'decoder' | 'encoder-decoder';
+	architecture: 'decoder' | 'encoder-decoder' | 'encoder';
 	onnx: string;
 	inputs: Array<{ name: string; dtype: string }>;
 	outputs: Array<{ name: string; dtype: string }>;
@@ -24,7 +24,7 @@ export type CharTokenizer = {
 };
 
 export type LoadedModel = {
-	architecture: 'decoder' | 'encoder-decoder';
+	architecture: 'decoder' | 'encoder-decoder' | 'encoder';
 	manifest: OrtManifest;
 	session: import('onnxruntime-web').InferenceSession;
 	tokenizer: CharTokenizer | null;

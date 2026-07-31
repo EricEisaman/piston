@@ -101,7 +101,9 @@ export const complete = async (
 	options: { maxNewTokens?: number } = {}
 ): Promise<{ tokens: number[]; text: string | null }> => {
 	if (model.architecture !== 'decoder') {
-		throw new Error('complete() requires a decoder model; use encodeDecode() for encoder-decoder');
+		throw new Error(
+			'complete() requires a decoder model; use encodeDecode() or encodeMasked() for other topologies'
+		);
 	}
 	const maxNew = options.maxNewTokens ?? 32;
 	let ids =
@@ -184,5 +186,102 @@ export const encodeDecode = async (
 	return {
 		tokens: decIds,
 		text: model.tokenizer ? decodeIds(model.tokenizer, decIds) : null
+	};
+};
+
+const argmaxAt = (
+	logits: Float32Array,
+	vocabSize: number,
+	seqLen: number,
+	position: number
+): number => {
+	const offset = position * vocabSize;
+	let best = 0;
+	let bestVal = -Infinity;
+	for (let i = 0; i < vocabSize; i++) {
+		const v = logits[offset + i]!;
+		if (v > bestVal) {
+			bestVal = v;
+			best = i;
+		}
+	}
+	return best;
+};
+
+/**
+ * Masked LM fill for encoder-only ONNX models (Dyck).
+ * Replaces maskToken (default `[MASK]` or `_`) positions with argmax predictions.
+ */
+export const encodeMasked = async (
+	model: LoadedModel,
+	text: string | number[],
+	options: { maskToken?: string; maskPositions?: number[] } = {}
+): Promise<{ tokens: number[]; text: string | null; filledPositions: number[] }> => {
+	if (model.architecture !== 'encoder') {
+		throw new Error('encodeMasked() requires an encoder model');
+	}
+	if (!model.tokenizer && typeof text === 'string') {
+		throw new Error('String inputs require a char tokenizer');
+	}
+
+	let ids: number[];
+	if (typeof text === 'string') {
+		const vocab = model.tokenizer!.tokenToId;
+		const maskTok =
+			options.maskToken ??
+			(vocab['<mask>'] != null ? '<mask>' : vocab['[MASK]'] != null ? '[MASK]' : '_');
+		ids = encodeText(model.tokenizer!, text);
+		if (options.maskPositions == null) {
+			const maskId = vocab[maskTok];
+			if (maskId === undefined) {
+				throw new Error(
+					`Mask token ${JSON.stringify(maskTok)} not in vocab; pass maskPositions explicitly`
+				);
+			}
+			options.maskPositions = ids
+				.map((id, i) => (id === maskId ? i : -1))
+				.filter((i) => i >= 0);
+		}
+	} else {
+		ids = [...text];
+	}
+
+	const maskPositions = options.maskPositions ?? [];
+	if (maskPositions.length === 0) {
+		throw new Error('No mask positions found');
+	}
+
+	const input = new ort.Tensor('int64', BigInt64Array.from(ids.map(BigInt)), [1, ids.length]);
+	const ones = new ort.Tensor(
+		'int64',
+		BigInt64Array.from(ids.map(() => 1n)),
+		[1, ids.length]
+	);
+	const zeros = new ort.Tensor(
+		'int64',
+		BigInt64Array.from(ids.map(() => 0n)),
+		[1, ids.length]
+	);
+	const feeds: Record<string, ort.Tensor> = { input_ids: input };
+	const inputNames = new Set(model.manifest.inputs.map((i) => i.name));
+	if (inputNames.has('attention_mask')) {
+		feeds.attention_mask = ones;
+	}
+	if (inputNames.has('token_type_ids')) {
+		feeds.token_type_ids = zeros;
+	}
+
+	const out = await model.session.run(feeds);
+	const logits = out.logits.data as Float32Array;
+	const vocabSize = model.manifest.vocabSize;
+	const filled = [...ids];
+	for (const pos of maskPositions) {
+		filled[pos] = argmaxAt(logits, vocabSize, ids.length, pos);
+	}
+
+	return {
+		tokens: filled,
+		text: model.tokenizer ? decodeIds(model.tokenizer, filled) : null,
+		filledPositions: maskPositions
 	};
 };
